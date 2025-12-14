@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Python
+=======
+# Fichiers Python
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,6 +23,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+<<<<<<< HEAD
 
 # Virtual Environment
 venv/
@@ -28,12 +33,25 @@ ENV/
 .ENV/
 
 # IDE
+=======
+MANIFEST
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs et éditeurs
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+<<<<<<< HEAD
 # Streamlit
 .streamlit/
 
@@ -43,6 +61,28 @@ data/
 *.csv
 *.json
 !requirements.txt
+=======
+# Données volumineuses - NE PAS COMMITER
+data/raw/
+data/processed/
+data/output/
+*.csv
+*.parquet
+*.json
+*.pkl
+*.pickle
+
+# Spark
+.spark/
+metastore_db/
+*.db
+
+# Streamlit
+.streamlit/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 
 # Logs
 *.log
@@ -52,6 +92,7 @@ logs/
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -62,3 +103,13 @@ Thumbs.db
 # Reports and outputs
 reports/
 output/
+=======
+# Fichiers sensibles
+.env
+secrets.toml
+*.key
+*.pem
+
+# Dossier de cache
+.cache/
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
