@@ -43,19 +43,30 @@ class K8sRealTimeSimulator:
         self.vms = self.create_virtual_cluster()
     
     def find_k8s_dataset(self):
-        """Cherche automatiquement le dataset K8s"""
+        """Cherche automatiquement le dataset K8s ou crée un dataset de secours"""
         possible_paths = [
+            "data/hybrid_dataset_enhanced.csv",
             "notebooks/data/hybrid_dataset_enhanced.csv",
-            "data/processed/enhanced/hybrid_dataset_enhanced.csv",
-            "data/processed/hybrid_security_system_dataset.csv"
+            "data/processed/enhanced/hybrid_dataset_enhanced.csv"
         ]
         
         for path in possible_paths:
             if Path(path).exists():
                 return path
         
-        raise FileNotFoundError("❌ No K8s dataset found! Run the enhancement script first.")
-    
+        print("⚠️ No K8s dataset found. Creating a synthetic baseline for simulation...")
+        dummy_data = pd.DataFrame({
+            'cpu_usage': np.random.uniform(10, 80, 100),
+            'memory_usage': np.random.uniform(1024, 4096, 100),
+            'packets_count': np.random.randint(50, 5000, 100),
+            'flow_bytes_per_second': np.random.uniform(5000, 50000, 100),
+            'anomaly_type': ['normal']*80 + ['system_anomaly']*10 + ['security_attack']*10
+        })
+        dummy_path = Path("data/synthetic_simulator_baseline.csv")
+        dummy_path.parent.mkdir(parents=True, exist_ok=True)
+        dummy_data.to_csv(dummy_path, index=False)
+        return str(dummy_path)
+
     def create_virtual_cluster(self):
         """Crée un cluster K8s virtuel réaliste"""
         vms = {}
@@ -207,7 +218,7 @@ class K8sRealTimeSimulator:
         return random.choice(messages)
     
     def run(self, api_url="http://localhost:5000/api/logs", interval=3):
-        """Exécute le simulateur"""
+        """Exécute le simulateur avec gestion d'erreurs améliorée"""
         print("\n" + "="*60)
         print("🚀 K8s REAL-TIME SIMULATOR STARTED")
         print("="*60)
@@ -237,7 +248,7 @@ class K8sRealTimeSimulator:
                     response = requests.post(
                         api_url,
                         json=log,
-                        timeout=2
+                        timeout=5
                     )
                     
                     if response.status_code == 200:
@@ -246,8 +257,10 @@ class K8sRealTimeSimulator:
                     else:
                         print(f"  ❌ {vm_name}: API Error {response.status_code}")
                         
+                except requests.exceptions.ConnectionError:
+                    print(f"  ⚠️  {vm_name}: Connection failed. Is the API running at {api_url}?")
                 except Exception as e:
-                    print(f"  ⚠️  {vm_name}: Connection error")
+                    print(f"  ⚠️  {vm_name}: {str(e)}")
             
             time.sleep(interval)
 

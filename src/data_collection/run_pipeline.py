@@ -80,4 +80,4 @@ def run_pipeline():
     print("\n Prêt à passer à Spark!")
 
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline() 

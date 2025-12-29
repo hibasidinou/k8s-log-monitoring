@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# Python
-=======
 # Fichiers Python
->>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,17 +19,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-<<<<<<< HEAD
-
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv/
-.ENV/
-
-# IDE
-=======
 MANIFEST
 
 # Environnements virtuels
@@ -44,33 +29,27 @@ env.bak/
 venv.bak/
 
 # IDEs et éditeurs
->>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-<<<<<<< HEAD
-# Streamlit
-.streamlit/
-
-# Data files (optional - comment out if you want to track data)
-data/
-*.parquet
-*.csv
-*.json
-!requirements.txt
-=======
 # Données volumineuses - NE PAS COMMITER
-data/raw/
-data/processed/
-data/output/
-*.csv
-*.parquet
-*.json
-*.pkl
-*.pickle
+data/raw/              # Ignorer les données brutes (souvent volumineuses)
+data/output/           # Ignorer les sorties générées
+*.csv                  # Ignorer tous les CSV par défaut
+*.parquet              # Ignorer tous les Parquet par défaut
+*.json                 # Ignorer tous les JSON par défaut
+*.pkl                  # Ignorer tous les Pickle par défaut
+*.pickle               # Ignorer tous les Pickle par défaut
+
+# MAIS faire des exceptions pour les fichiers importants dans data/processed/
+!data/processed/hybrid_security_system_dataset.csv
+!data/processed/security_attacks_only.csv
+!data/processed/system_anomalies_only.csv
+# !data/processed/cleaned/     # Décommentez si vous voulez garder ce dossier
+# !data/processed/parquet/     # Décommentez si vous voulez garder ce dossier
 
 # Spark
 .spark/
@@ -82,7 +61,6 @@ metastore_db/
 
 # Jupyter Notebook
 .ipynb_checkpoints
->>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 
 # Logs
 *.log
@@ -92,18 +70,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-<<<<<<< HEAD
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Environment variables
-.env
-.env.local
-
-# Reports and outputs
-reports/
-output/
-=======
 # Fichiers sensibles
 .env
 secrets.toml
@@ -112,4 +78,3 @@ secrets.toml
 
 # Dossier de cache
 .cache/
->>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
