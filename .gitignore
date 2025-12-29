@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+# Python
+=======
 # Fichiers Python
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,6 +23,17 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+<<<<<<< HEAD
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# IDE
+=======
 MANIFEST
 
 # Environnements virtuels
@@ -29,12 +44,24 @@ env.bak/
 venv.bak/
 
 # IDEs et éditeurs
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+<<<<<<< HEAD
+# Streamlit
+.streamlit/
+
+# Data files (optional - comment out if you want to track data)
+data/
+*.parquet
+*.csv
+*.json
+!requirements.txt
+=======
 # Données volumineuses - NE PAS COMMITER
 data/raw/
 data/processed/
@@ -55,6 +82,7 @@ metastore_db/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
 
 # Logs
 *.log
@@ -64,6 +92,18 @@ logs/
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.env.local
+
+# Reports and outputs
+reports/
+output/
+=======
 # Fichiers sensibles
 .env
 secrets.toml
@@ -72,3 +112,4 @@ secrets.toml
 
 # Dossier de cache
 .cache/
+>>>>>>> bb0604741b68f624e975b4bc0112c14b54f4322e
