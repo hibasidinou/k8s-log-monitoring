@@ -1,0 +1,68 @@
+{
+  "total_rows": 18709,
+  "columns": {
+    "cpu_usage": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "memory_usage": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "label": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "int64"
+    },
+    "anomaly_type": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "object"
+    },
+    "packets_count": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "flow_bytes_per_second": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "flow_packets_per_second": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "container_cpu_usage_seconds_rate": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "container_memory_usage_bytes": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "float64"
+    },
+    "anomaly_type_encoded": {
+      "missing_count": 0,
+      "missing_percentage": 0.0,
+      "non_missing_count": 18709,
+      "dtype": "int64"
+    }
+  },
+  "total_missing": 0,
+  "columns_with_missing": [],
+  "overall_missing_percentage": 0.0
+}

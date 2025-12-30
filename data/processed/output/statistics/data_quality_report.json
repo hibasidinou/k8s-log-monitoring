@@ -1,0 +1,312 @@
+{
+  "preprocessing_summary": {
+    "initial_rows": 18709,
+    "final_rows": 18709,
+    "rows_removed": 0,
+    "missing_values_handled": {
+      "cpu_usage": {
+        "action": "filled_with_median",
+        "fill_value": 2.031163972226673,
+        "count": 15000
+      },
+      "memory_usage": {
+        "action": "filled_with_median",
+        "fill_value": 4199.95267004008,
+        "count": 15000
+      },
+      "packets_count": {
+        "action": "filled_with_median",
+        "fill_value": 9.0,
+        "count": 3709
+      },
+      "flow_bytes_per_second": {
+        "action": "filled_with_median",
+        "fill_value": 42723.71013483681,
+        "count": 3709
+      },
+      "flow_packets_per_second": {
+        "action": "filled_with_median",
+        "fill_value": 1326.3786956352951,
+        "count": 3709
+      },
+      "container_cpu_usage_seconds_rate": {
+        "action": "filled_with_median",
+        "fill_value": 0.096721488151312,
+        "count": 3709
+      },
+      "container_memory_usage_bytes": {
+        "action": "filled_with_median",
+        "fill_value": 61784064.0,
+        "count": 3709
+      }
+    },
+    "outliers_detected": {},
+    "outliers_handled": {},
+    "duplicates_removed": 0,
+    "text_standardized": 0,
+    "timestamps_standardized": 0,
+    "validation_errors": []
+  },
+  "missing_values_report": {
+    "total_rows": 18709,
+    "columns": {
+      "cpu_usage": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "memory_usage": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "label": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "int64"
+      },
+      "anomaly_type": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "object"
+      },
+      "packets_count": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "flow_bytes_per_second": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "flow_packets_per_second": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "container_cpu_usage_seconds_rate": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "container_memory_usage_bytes": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "float64"
+      },
+      "anomaly_type_encoded": {
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "non_missing_count": 18709,
+        "dtype": "int64"
+      }
+    },
+    "total_missing": 0,
+    "columns_with_missing": [],
+    "overall_missing_percentage": 0.0
+  },
+  "data_quality_metrics": {
+    "total_rows": 18709,
+    "total_columns": 10,
+    "missing_values": {
+      "total_rows": 18709,
+      "columns": {
+        "cpu_usage": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "memory_usage": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "label": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "int64"
+        },
+        "anomaly_type": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "object"
+        },
+        "packets_count": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "flow_bytes_per_second": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "flow_packets_per_second": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "container_cpu_usage_seconds_rate": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "container_memory_usage_bytes": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "float64"
+        },
+        "anomaly_type_encoded": {
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "non_missing_count": 18709,
+          "dtype": "int64"
+        }
+      },
+      "total_missing": 0,
+      "columns_with_missing": [],
+      "overall_missing_percentage": 0.0
+    },
+    "duplicates": {
+      "count": 4597,
+      "percentage": 24.57
+    },
+    "data_types": {
+      "cpu_usage": "float64",
+      "memory_usage": "float64",
+      "label": "int64",
+      "anomaly_type": "object",
+      "packets_count": "float64",
+      "flow_bytes_per_second": "float64",
+      "flow_packets_per_second": "float64",
+      "container_cpu_usage_seconds_rate": "float64",
+      "container_memory_usage_bytes": "float64",
+      "anomaly_type_encoded": "int64"
+    },
+    "numeric_stats": {
+      "cpu_usage": {
+        "mean": 2.025568322655994,
+        "median": 2.031163972226673,
+        "std": 0.5126082703748601,
+        "min": 0.0023366393633166,
+        "max": 3.998829512471428,
+        "q25": 2.031163972226673,
+        "q75": 2.031163972226673,
+        "outliers_iqr": 0
+      },
+      "memory_usage": {
+        "mean": 4192.178836838119,
+        "median": 4199.95267004008,
+        "std": 1045.0347184453562,
+        "min": 4.269156867457241,
+        "max": 8188.573607876772,
+        "q25": 4199.95267004008,
+        "q75": 4199.95267004008,
+        "outliers_iqr": 0
+      },
+      "label": {
+        "mean": 0.5384574269068363,
+        "median": 1.0,
+        "std": 0.4985321559609465,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "q75": 1.0,
+        "outliers_iqr": 0
+      },
+      "packets_count": {
+        "mean": 7.0873910951948265,
+        "median": 9.0,
+        "std": 6.449621033792416,
+        "min": 1.0,
+        "max": 179.0,
+        "q25": 2.0,
+        "q75": 9.0,
+        "outliers_iqr": 120
+      },
+      "flow_bytes_per_second": {
+        "mean": 402752.6629410721,
+        "median": 42723.71013483681,
+        "std": 750380.6455272646,
+        "min": 0.0,
+        "max": 9437184.0,
+        "q25": 0.0,
+        "q75": 484218.0204045105,
+        "outliers_iqr": 1208
+      },
+      "flow_packets_per_second": {
+        "mean": 15099.7405963797,
+        "median": 1326.3786956352951,
+        "std": 52246.49237900334,
+        "min": 0.0,
+        "max": 1048576.0,
+        "q25": 1.968093297940878,
+        "q75": 6271.595946170461,
+        "outliers_iqr": 1633
+      },
+      "container_cpu_usage_seconds_rate": {
+        "mean": 0.11257396759997562,
+        "median": 0.096721488151312,
+        "std": 0.09414029601002269,
+        "min": 0.0036719432314399,
+        "max": 0.4512775818640018,
+        "q25": 0.0615193542747567,
+        "q75": 0.108461262610339,
+        "outliers_iqr": 1887
+      },
+      "container_memory_usage_bytes": {
+        "mean": 72069524.57186024,
+        "median": 61784064.0,
+        "std": 20898749.170078777,
+        "min": 45547520.0,
+        "max": 133867520.0,
+        "q25": 60243968.0,
+        "q75": 86761472.0,
+        "outliers_iqr": 0
+      },
+      "anomaly_type_encoded": {
+        "mean": 0.19824683307499064,
+        "median": 0.0,
+        "std": 0.39868975701684306,
+        "min": 0.0,
+        "max": 1.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "outliers_iqr": 0
+      }
+    },
+    "text_stats": {
+      "anomaly_type": {
+        "unique_count": 2,
+        "most_frequent": "security_attack",
+        "avg_length": 14.801753166925009,
+        "max_length": 15
+      }
+    }
+  },
+  "schema_validation": {
+    "errors": [],
+    "error_count": 0
+  },
+  "generated_at": "2025-12-29T19:12:11.720829",
+  "data_type": "hybrid_dataset"
+}

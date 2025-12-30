@@ -1,0 +1,75 @@
+{
+  "cpu_usage": {
+    "type": "float",
+    "required": true,
+    "nullable": true,
+    "min": 0.0,
+    "max": 100.0,
+    "description": "CPU usage percentage"
+  },
+  "memory_usage": {
+    "type": "float",
+    "required": true,
+    "nullable": true,
+    "min": 0.0,
+    "max": 100000.0,
+    "description": "Memory usage in MB"
+  },
+  "label": {
+    "type": "integer",
+    "required": true,
+    "nullable": false,
+    "allowed_values": [
+      0,
+      1
+    ],
+    "description": "Binary label: 0=normal, 1=anomaly"
+  },
+  "anomaly_type": {
+    "type": "string",
+    "required": true,
+    "nullable": false,
+    "description": "Type of anomaly"
+  },
+  "packets_count": {
+    "type": "float",
+    "required": false,
+    "nullable": true,
+    "min": 0.0,
+    "description": "Network packets count"
+  },
+  "flow_bytes_per_second": {
+    "type": "float",
+    "required": false,
+    "nullable": true,
+    "min": 0.0,
+    "description": "Network flow bytes per second"
+  },
+  "flow_packets_per_second": {
+    "type": "float",
+    "required": false,
+    "nullable": true,
+    "min": 0.0,
+    "description": "Network flow packets per second"
+  },
+  "container_cpu_usage_seconds_rate": {
+    "type": "float",
+    "required": false,
+    "nullable": true,
+    "min": 0.0,
+    "description": "Container CPU usage rate"
+  },
+  "container_memory_usage_bytes": {
+    "type": "float",
+    "required": false,
+    "nullable": true,
+    "min": 0.0,
+    "description": "Container memory usage in bytes"
+  },
+  "anomaly_type_encoded": {
+    "type": "integer",
+    "required": false,
+    "nullable": true,
+    "description": "Encoded anomaly type"
+  }
+}
