@@ -451,6 +451,11 @@ class DataPreprocessor:
         df.to_parquet(output_path, index=False)
         logger.info(f"Cleaned data saved to {output_path}")
         
+        # Also save as CSV for easy viewing
+        csv_path = output_path.with_suffix('.csv')
+        df.to_csv(csv_path, index=False)
+        logger.info(f"Cleaned data also saved as CSV: {csv_path}")
+        
         logger.info("=" * 60)
         logger.info("Data preprocessing completed")
         logger.info(f"Initial rows: {self.cleaning_stats['initial_rows']:,}")
