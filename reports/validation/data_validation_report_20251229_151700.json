@@ -1,0 +1,503 @@
+{
+  "Dataset Hybride Principal": {
+    "dataset_name": "Dataset Hybride Principal",
+    "file_path": "data\\processed\\hybrid_security_system_dataset.csv",
+    "timestamp": "2025-12-29T15:16:59.384775",
+    "basic_stats": {
+      "num_rows": 18709,
+      "num_columns": 10,
+      "memory_usage_mb": 2.423140525817871,
+      "column_names": [
+        "cpu_usage",
+        "memory_usage",
+        "label",
+        "anomaly_type",
+        "packets_count",
+        "flow_bytes_per_second",
+        "flow_packets_per_second",
+        "container_cpu_usage_seconds_rate",
+        "container_memory_usage_bytes",
+        "anomaly_type_encoded"
+      ]
+    },
+    "data_quality": {
+      "missing_values": {
+        "cpu_usage": 15000,
+        "memory_usage": 15000,
+        "packets_count": 3709,
+        "flow_bytes_per_second": 3709,
+        "flow_packets_per_second": 3709,
+        "container_cpu_usage_seconds_rate": 3709,
+        "container_memory_usage_bytes": 3709
+      },
+      "missing_percentage": {
+        "cpu_usage": 80.18,
+        "memory_usage": 80.18,
+        "packets_count": 19.82,
+        "flow_bytes_per_second": 19.82,
+        "flow_packets_per_second": 19.82,
+        "container_cpu_usage_seconds_rate": 19.82,
+        "container_memory_usage_bytes": 19.82
+      },
+      "duplicate_rows": 4597,
+      "duplicate_percentage": 24.57,
+      "outliers": {
+        "cpu_usage": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "memory_usage": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "label": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "packets_count": {
+          "outliers": 677,
+          "outlier_pct": 3.62
+        },
+        "flow_bytes_per_second": {
+          "outliers": 1800,
+          "outlier_pct": 9.62
+        },
+        "flow_packets_per_second": {
+          "outliers": 1767,
+          "outlier_pct": 9.44
+        },
+        "container_cpu_usage_seconds_rate": {
+          "outliers": 1887,
+          "outlier_pct": 10.09
+        },
+        "container_memory_usage_bytes": {
+          "outliers": 5,
+          "outlier_pct": 0.03
+        },
+        "anomaly_type_encoded": {
+          "outliers": 3709,
+          "outlier_pct": 19.82
+        }
+      }
+    },
+    "schema_info": {
+      "cpu_usage": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "memory_usage": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "label": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "anomaly_type": {
+        "dtype": "object",
+        "unique_values": 2,
+        "sample_values": [
+          "system_anomaly",
+          "security_attack"
+        ]
+      },
+      "packets_count": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "flow_bytes_per_second": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "flow_packets_per_second": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "container_cpu_usage_seconds_rate": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "container_memory_usage_bytes": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "anomaly_type_encoded": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      }
+    },
+    "anomaly_stats": {
+      "label_distribution": {
+        "1": 10074,
+        "0": 8635
+      },
+      "anomaly_percentage": 53.85,
+      "class_imbalance": 7.69,
+      "anomaly_type_distribution": {
+        "security_attack": 15000,
+        "system_anomaly": 3709
+      }
+    },
+    "recommendations": [
+      "❌ Colonne 'cpu_usage' a 80.18% de valeurs manquantes - envisager la suppression",
+      "❌ Colonne 'memory_usage' a 80.18% de valeurs manquantes - envisager la suppression",
+      "⚠️  Colonne 'packets_count' a 19.82% de valeurs manquantes - nécessite une imputation",
+      "⚠️  Colonne 'flow_bytes_per_second' a 19.82% de valeurs manquantes - nécessite une imputation",
+      "⚠️  Colonne 'flow_packets_per_second' a 19.82% de valeurs manquantes - nécessite une imputation",
+      "⚠️  Colonne 'container_cpu_usage_seconds_rate' a 19.82% de valeurs manquantes - nécessite une imputation",
+      "⚠️  Colonne 'container_memory_usage_bytes' a 19.82% de valeurs manquantes - nécessite une imputation",
+      "⚠️  24.57% de doublons - envisager la déduplication",
+      "⚠️  Colonne 'container_cpu_usage_seconds_rate' a 10.09% d'outliers - vérifier la validité",
+      "⚠️  Colonne 'anomaly_type_encoded' a 19.82% d'outliers - vérifier la validité"
+    ]
+  },
+  "Anomalies Système": {
+    "dataset_name": "Anomalies Système",
+    "file_path": "data\\processed\\system_anomalies_only.csv",
+    "timestamp": "2025-12-29T15:16:59.456556",
+    "basic_stats": {
+      "num_rows": 3709,
+      "num_columns": 4,
+      "memory_usage_mb": 0.3078603744506836,
+      "column_names": [
+        "cpu_usage",
+        "memory_usage",
+        "label",
+        "anomaly_type"
+      ]
+    },
+    "data_quality": {
+      "missing_values": {},
+      "missing_percentage": {},
+      "duplicate_rows": 0,
+      "duplicate_percentage": 0.0,
+      "outliers": {
+        "cpu_usage": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "memory_usage": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "label": {
+          "outliers": 564,
+          "outlier_pct": 15.21
+        }
+      }
+    },
+    "schema_info": {
+      "cpu_usage": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "memory_usage": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "label": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "anomaly_type": {
+        "dtype": "object",
+        "unique_values": 1,
+        "sample_values": [
+          "system_anomaly"
+        ]
+      }
+    },
+    "anomaly_stats": {
+      "label_distribution": {
+        "0": 3145,
+        "1": 564
+      },
+      "anomaly_percentage": 15.21,
+      "class_imbalance": 69.59,
+      "anomaly_type_distribution": {
+        "system_anomaly": 3709
+      }
+    },
+    "recommendations": [
+      "⚠️  Déséquilibre de classes élevé (69.59%) - envisager le rééchantillonnage",
+      "⚠️  Colonne 'label' a 15.21% d'outliers - vérifier la validité"
+    ]
+  },
+  "Attaques Sécurité": {
+    "dataset_name": "Attaques Sécurité",
+    "file_path": "data\\processed\\security_attacks_only.csv",
+    "timestamp": "2025-12-29T15:16:59.499682",
+    "basic_stats": {
+      "num_rows": 15000,
+      "num_columns": 7,
+      "memory_usage_mb": 1.6022987365722656,
+      "column_names": [
+        "packets_count",
+        "flow_bytes_per_second",
+        "flow_packets_per_second",
+        "container_cpu_usage_seconds_rate",
+        "container_memory_usage_bytes",
+        "label",
+        "anomaly_type"
+      ]
+    },
+    "data_quality": {
+      "missing_values": {},
+      "missing_percentage": {},
+      "duplicate_rows": 4597,
+      "duplicate_percentage": 30.65,
+      "outliers": {
+        "packets_count": {
+          "outliers": 677,
+          "outlier_pct": 4.51
+        },
+        "flow_bytes_per_second": {
+          "outliers": 1800,
+          "outlier_pct": 12.0
+        },
+        "flow_packets_per_second": {
+          "outliers": 1767,
+          "outlier_pct": 11.78
+        },
+        "container_cpu_usage_seconds_rate": {
+          "outliers": 1887,
+          "outlier_pct": 12.58
+        },
+        "container_memory_usage_bytes": {
+          "outliers": 5,
+          "outlier_pct": 0.03
+        },
+        "label": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        }
+      }
+    },
+    "schema_info": {
+      "packets_count": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "flow_bytes_per_second": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "flow_packets_per_second": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "container_cpu_usage_seconds_rate": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "container_memory_usage_bytes": {
+        "dtype": "float64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "label": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "anomaly_type": {
+        "dtype": "object",
+        "unique_values": 1,
+        "sample_values": [
+          "security_attack"
+        ]
+      }
+    },
+    "anomaly_stats": {
+      "label_distribution": {
+        "1": 9510,
+        "0": 5490
+      },
+      "anomaly_percentage": 63.4,
+      "class_imbalance": 26.8,
+      "anomaly_type_distribution": {
+        "security_attack": 15000
+      }
+    },
+    "recommendations": [
+      "⚠️  30.65% de doublons - envisager la déduplication",
+      "⚠️  Colonne 'flow_bytes_per_second' a 12.0% d'outliers - vérifier la validité",
+      "⚠️  Colonne 'flow_packets_per_second' a 11.78% d'outliers - vérifier la validité",
+      "⚠️  Colonne 'container_cpu_usage_seconds_rate' a 12.58% d'outliers - vérifier la validité"
+    ]
+  },
+  "Logs Simulés": {
+    "dataset_name": "Logs Simulés",
+    "file_path": "data\\raw\\simulated_logs\\simulated_k8s_logs_full.csv",
+    "timestamp": "2025-12-29T15:17:00.051000",
+    "basic_stats": {
+      "num_rows": 150000,
+      "num_columns": 13,
+      "memory_usage_mb": 88.25294017791748,
+      "column_names": [
+        "timestamp",
+        "log_level",
+        "message",
+        "pod_name",
+        "namespace",
+        "container_name",
+        "node_name",
+        "service",
+        "cpu_usage_percent",
+        "memory_usage_mb",
+        "network_bytes",
+        "is_anomaly",
+        "anomaly_type"
+      ]
+    },
+    "data_quality": {
+      "missing_values": {},
+      "missing_percentage": {},
+      "duplicate_rows": 0,
+      "duplicate_percentage": 0.0,
+      "outliers": {
+        "cpu_usage_percent": {
+          "outliers": 0,
+          "outlier_pct": 0.0
+        },
+        "memory_usage_mb": {
+          "outliers": 17957,
+          "outlier_pct": 11.97
+        },
+        "network_bytes": {
+          "outliers": 17957,
+          "outlier_pct": 11.97
+        },
+        "is_anomaly": {
+          "outliers": 17957,
+          "outlier_pct": 11.97
+        }
+      }
+    },
+    "schema_info": {
+      "timestamp": {
+        "dtype": "object",
+        "unique_values": 145804,
+        "sample_values": [
+          "2025-12-22T11:16:28.591224",
+          "2025-12-03T19:34:30.591224",
+          "2025-12-07T01:09:13.591224"
+        ]
+      },
+      "log_level": {
+        "dtype": "object",
+        "unique_values": 5,
+        "sample_values": [
+          "INFO",
+          "DEBUG",
+          "WARNING"
+        ]
+      },
+      "message": {
+        "dtype": "object",
+        "unique_values": 41471,
+        "sample_values": [
+          "Service auth-service created successfully",
+          "Debug: Network policy applied to namespace staging",
+          "CPU usage above threshold on node node-9: 25%"
+        ]
+      },
+      "pod_name": {
+        "dtype": "object",
+        "unique_values": 148898,
+        "sample_values": [
+          "auth-service-pod-27-9034",
+          "frontend-pod-14-7720",
+          "payment-service-pod-53-2705"
+        ]
+      },
+      "namespace": {
+        "dtype": "object",
+        "unique_values": 6,
+        "sample_values": [
+          "development",
+          "staging",
+          "monitoring"
+        ]
+      },
+      "container_name": {
+        "dtype": "object",
+        "unique_values": 5,
+        "sample_values": [
+          "container-5",
+          "container-1",
+          "container-2"
+        ]
+      },
+      "node_name": {
+        "dtype": "object",
+        "unique_values": 20,
+        "sample_values": [
+          "node-7",
+          "node-8",
+          "node-9"
+        ]
+      },
+      "service": {
+        "dtype": "object",
+        "unique_values": 12,
+        "sample_values": [
+          "auth-service",
+          "frontend",
+          "payment-service"
+        ]
+      },
+      "cpu_usage_percent": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "memory_usage_mb": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "network_bytes": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "is_anomaly": {
+        "dtype": "int64",
+        "unique_values": null,
+        "sample_values": null
+      },
+      "anomaly_type": {
+        "dtype": "object",
+        "unique_values": 6,
+        "sample_values": [
+          "normal",
+          "cpu_spike",
+          "pod_crash"
+        ]
+      }
+    },
+    "anomaly_stats": null,
+    "recommendations": [
+      "⚠️  Colonne 'memory_usage_mb' a 11.97% d'outliers - vérifier la validité",
+      "⚠️  Colonne 'network_bytes' a 11.97% d'outliers - vérifier la validité",
+      "⚠️  Colonne 'is_anomaly' a 11.97% d'outliers - vérifier la validité"
+    ]
+  }
+}

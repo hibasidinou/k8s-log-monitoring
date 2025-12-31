@@ -1,80 +1,51 @@
-# Fichiers Python
+# .gitignore
+# Ignore all data files except processed folder structure
+data/raw/**
+!data/processed/
+data/processed/*.csv  # But ignore CSV files in processed too
+data/processed/*.parquet
+data/processed/*.pkl
+!data/processed/README.md  # Keep README if exists
+
+# Ignore large dataset files
+*.csv
+*.arff
+*.txt
+*.xlsx
+*.xls
+*.parquet
+*.feather
+*.pkl
+*.h5
+*.hdf5
+*.zip
+*.tar
+*.gz
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore data collection files
+src/data_collection/data/**
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Environnements virtuels
-venv/
 env/
+venv/
 ENV/
 env.bak/
 venv.bak/
 
-# IDEs et éditeurs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-
-# Données volumineuses - NE PAS COMMITER
-data/raw/              # Ignorer les données brutes (souvent volumineuses)
-data/output/           # Ignorer les sorties générées
-*.csv                  # Ignorer tous les CSV par défaut
-*.parquet              # Ignorer tous les Parquet par défaut
-*.json                 # Ignorer tous les JSON par défaut
-*.pkl                  # Ignorer tous les Pickle par défaut
-*.pickle               # Ignorer tous les Pickle par défaut
-
-# MAIS faire des exceptions pour les fichiers importants dans data/processed/
-!data/processed/hybrid_security_system_dataset.csv
-!data/processed/security_attacks_only.csv
-!data/processed/system_anomalies_only.csv
-# !data/processed/cleaned/     # Décommentez si vous voulez garder ce dossier
-# !data/processed/parquet/     # Décommentez si vous voulez garder ce dossier
-
-# Spark
-.spark/
-metastore_db/
-*.db
-
-# Streamlit
-.streamlit/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Logs
-*.log
-logs/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Fichiers sensibles
-.env
-secrets.toml
-*.key
-*.pem
-
-# Dossier de cache
-.cache/
