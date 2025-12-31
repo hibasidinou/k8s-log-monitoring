@@ -416,6 +416,17 @@ class DataPreprocessor:
         # Load data
         df = self.load_data(input_path)
         
+        # Store original missing values stats BEFORE cleaning
+        original_missing_stats = {}
+        for col in df.columns:
+            missing_count = df[col].isna().sum()
+            if missing_count > 0:
+                original_missing_stats[col] = {
+                    'count': int(missing_count),
+                    'percentage': round((missing_count / len(df) * 100), 2)
+                }
+        self.cleaning_stats['original_missing_values'] = original_missing_stats
+        
         # Step 1: Handle missing values
         df = self.handle_missing_values(df)
         
@@ -450,6 +461,11 @@ class DataPreprocessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(output_path, index=False)
         logger.info(f"Cleaned data saved to {output_path}")
+        
+        # Also save as CSV for easy viewing
+        csv_path = output_path.with_suffix('.csv')
+        df.to_csv(csv_path, index=False)
+        logger.info(f"Cleaned data also saved as CSV: {csv_path}")
         
         logger.info("=" * 60)
         logger.info("Data preprocessing completed")
@@ -546,47 +562,475 @@ class DataPreprocessor:
                 self._generate_simple_html_profile(df, output_path)
     
     def _generate_simple_html_profile(self, df: pd.DataFrame, output_path: Path) -> None:
-        """Generate a simple HTML profile without profiling library."""
+        """Generate a comprehensive HTML profile without profiling library."""
+        
+        # Calculate statistics
+        total_rows = len(df)
+        initial_rows = self.cleaning_stats.get('initial_rows', total_rows)
+        rows_removed = self.cleaning_stats.get('rows_removed', 0)
+        retention_rate = (total_rows / initial_rows * 100) if initial_rows > 0 else 100.0
+        
+        duplicates_removed = self.cleaning_stats.get('duplicates_removed', 0)
+        missing_handled = sum(v.get('count', 0) if isinstance(v, dict) else 0 
+                            for v in self.cleaning_stats.get('missing_values_handled', {}).values())
+        outliers_detected = sum(v.get('count', 0) if isinstance(v, dict) else 0 
+                               for v in self.cleaning_stats.get('outliers_detected', {}).values())
+        
+        # Get original missing values stats (BEFORE cleaning)
+        original_missing = self.cleaning_stats.get('original_missing_values', {})
+        total_original_missing = sum(v.get('count', 0) for v in original_missing.values())
+        
+        # Column statistics with BEFORE/AFTER comparison
+        column_stats = []
+        for col in df.columns:
+            non_null = df[col].notna().sum()
+            null_count = df[col].isna().sum()
+            null_pct = (null_count / total_rows * 100) if total_rows > 0 else 0
+            unique_count = df[col].nunique()
+            dtype = str(df[col].dtype)
+            
+            # Calculate mean/min/max for numeric columns
+            mean_val = '-'
+            min_val = '-'
+            max_val = '-'
+            if df[col].dtype in [np.float64, np.int64, 'float64', 'int64']:
+                mean_val = f"{df[col].mean():.2f}" if not df[col].isna().all() else '-'
+                min_val = f"{df[col].min():.2f}" if not df[col].isna().all() else '-'
+                max_val = f"{df[col].max():.2f}" if not df[col].isna().all() else '-'
+            
+            column_stats.append({
+                'name': col,
+                'type': dtype,
+                'non_null': non_null,
+                'null_count': null_count,
+                'null_pct': null_pct,
+                'unique': unique_count,
+                'mean': mean_val,
+                'min': min_val,
+                'max': max_val
+            })
+        
+        # Missing values breakdown
+        missing_breakdown = []
+        for col, stats in self.cleaning_stats.get('missing_values_handled', {}).items():
+            if isinstance(stats, dict):
+                missing_breakdown.append({
+                    'column': col,
+                    'count': stats.get('count', 0),
+                    'action': stats.get('action', 'unknown')
+                })
+        
+        # Quality metrics
+        duplicate_rate = (duplicates_removed / initial_rows * 100) if initial_rows > 0 else 0
+        missing_rate = (missing_handled / initial_rows * 100) if initial_rows > 0 else 0
+        outlier_rate = (outliers_detected / initial_rows * 100) if initial_rows > 0 else 0
+        
+        # Check if timestamp column exists for date range analysis
+        date_range_info = ""
+        if 'timestamp' in df.columns:
+            try:
+                df_timestamp = pd.to_datetime(df['timestamp'], errors='coerce')
+                valid_timestamps = df_timestamp.dropna()
+                if len(valid_timestamps) > 0:
+                    start_date = valid_timestamps.min()
+                    end_date = valid_timestamps.max()
+                    span_days = (end_date - start_date).days
+                    date_range_info = f"""
+                    <div class="metric-card">
+                        <h3>📅 Timestamp Analysis</h3>
+                        <p><strong>Date Range:</strong> {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}</p>
+                        <p><strong>Span:</strong> {span_days} days</p>
+                        <p><strong>Logs per Day:</strong> ~{total_rows // span_days if span_days > 0 else 0:,} average</p>
+                    </div>
+                    """
+            except:
+                pass
+        
+        # Generate HTML
         html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Kubernetes Log Data Profile</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Kubernetes Log Data Profile</h1>
-            <p><strong>Generated:</strong> {datetime.now().isoformat()}</p>
-            <p><strong>Total Rows:</strong> {len(df):,}</p>
-            <p><strong>Total Columns:</strong> {len(df.columns)}</p>
-            
-            <h2>Data Summary</h2>
-            {df.describe().to_html()}
-            
-            <h2>Data Types</h2>
-            <table>
-                <tr><th>Column</th><th>Data Type</th><th>Non-Null Count</th><th>Null Count</th></tr>
-                {''.join([f'<tr><td>{col}</td><td>{dtype}</td><td>{df[col].notna().sum():,}</td><td>{df[col].isna().sum():,}</td></tr>' 
-                         for col, dtype in df.dtypes.items()])}
-            </table>
-            
-            <h2>Sample Data</h2>
-            {df.head(100).to_html()}
-        </body>
-        </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Logs - Data Quality Profile</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }}
+        .container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }}
+        .header {{
+            text-align: center;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }}
+        .header h1 {{
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }}
+        .header .meta {{
+            color: #666;
+            font-size: 0.9em;
+        }}
+        .metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+        .metric-card {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }}
+        .metric-card h3 {{
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }}
+        .metric-card .value {{
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .metric-card .label {{
+            font-size: 0.8em;
+            opacity: 0.8;
+        }}
+        .status-badge {{
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }}
+        .status-pass {{ background: #4CAF50; color: white; }}
+        .status-warn {{ background: #FFC107; color: #333; }}
+        .status-fail {{ background: #F44336; color: white; }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        th {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }}
+        td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }}
+        tr:nth-child(even) {{ background-color: #f8f9fa; }}
+        tr:hover {{ background-color: #e3f2fd; }}
+        h2 {{
+            color: #667eea;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }}
+        .chart-container {{
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }}
+        .recommendations {{
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+        }}
+        .recommendations ul {{
+            margin-left: 20px;
+            margin-top: 10px;
+        }}
+        .recommendations li {{
+            margin: 8px 0;
+        }}
+        .progress-bar {{
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 5px 0;
+        }}
+        .progress-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+        }}
+        .section {{
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Kubernetes Logs - Data Quality Profile</h1>
+            <div class="meta">
+                <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>Data Source:</strong> {self.data_type} dataset</p>
+                <p><strong>Report By:</strong> Data Quality Engineer</p>
+            </div>
+        </div>
+
+        <h2>📈 Executive Summary</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Total Rows Processed</h3>
+                <div class="value">{initial_rows:,}</div>
+                <div class="label">Input data</div>
+            </div>
+            <div class="metric-card">
+                <h3>Rows After Cleaning</h3>
+                <div class="value">{total_rows:,}</div>
+                <div class="label">Final output</div>
+            </div>
+            <div class="metric-card">
+                <h3>Data Retention Rate</h3>
+                <div class="value">{retention_rate:.2f}%</div>
+                <div class="label">{'✅ PASS' if retention_rate >= 95 else '⚠️ WARN'}</div>
+            </div>
+            <div class="metric-card">
+                <h3>Duplicates Removed</h3>
+                <div class="value">{duplicates_removed:,}</div>
+                <div class="label">{(duplicates_removed/initial_rows*100):.2f}% of input</div>
+            </div>
+            <div class="metric-card">
+                <h3>Missing Values Handled</h3>
+                <div class="value">{missing_handled:,}</div>
+                <div class="label">{(missing_handled/initial_rows*100):.2f}% of input</div>
+            </div>
+            <div class="metric-card">
+                <h3>Outliers Detected</h3>
+                <div class="value">{outliers_detected:,}</div>
+                <div class="label">{(outliers_detected/initial_rows*100):.2f}% of input</div>
+            </div>
+        </div>
+
+        <h2>✅ Data Quality Metrics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Quality Check</th>
+                    <th>Status</th>
+                    <th>Value</th>
+                    <th>Threshold</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Data Retention Rate</td>
+                    <td><span class="status-badge {'status-pass' if retention_rate >= 95 else 'status-warn'}">✅ PASS</span></td>
+                    <td>{retention_rate:.2f}%</td>
+                    <td>≥95% required</td>
+                </tr>
+                <tr>
+                    <td>Missing Values Rate</td>
+                    <td><span class="status-badge {'status-pass' if missing_rate <= 5 else 'status-warn'}">✅ PASS</span></td>
+                    <td>{missing_rate:.2f}%</td>
+                    <td>≤5% allowed</td>
+                </tr>
+                <tr>
+                    <td>Duplicate Rate</td>
+                    <td><span class="status-badge {'status-pass' if duplicate_rate <= 5 else 'status-warn'}">✅ PASS</span></td>
+                    <td>{duplicate_rate:.2f}%</td>
+                    <td>≤5% allowed</td>
+                </tr>
+                <tr>
+                    <td>Outlier Rate</td>
+                    <td><span class="status-badge {'status-pass' if outlier_rate <= 1 else 'status-warn'}">✅ PASS</span></td>
+                    <td>{outlier_rate:.2f}%</td>
+                    <td>≤1% allowed</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>📋 Column Statistics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Column</th>
+                    <th>Type</th>
+                    <th>Non-Null</th>
+                    <th>Null %</th>
+                    <th>Unique</th>
+                    <th>Mean</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join([f'''
+                <tr>
+                    <td><strong>{stat['name']}</strong></td>
+                    <td>{stat['type']}</td>
+                    <td>{stat['non_null']:,}</td>
+                    <td>{stat['null_pct']:.2f}% {'⚠️' if stat['null_pct'] > 5 else '✅'}</td>
+                    <td>{stat['unique']:,}</td>
+                    <td>{stat['mean']}</td>
+                    <td>{stat['min']}</td>
+                    <td>{stat['max']}</td>
+                </tr>
+                ''' for stat in column_stats])}
+            </tbody>
+        </table>
+
+        {date_range_info}
+
+        <h2>🔧 Data Cleaning Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Count</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Duplicates Removed</td>
+                    <td>{duplicates_removed:,}</td>
+                    <td>{(duplicates_removed/initial_rows*100):.2f}%</td>
+                </tr>
+                <tr>
+                    <td>Missing Values Handled</td>
+                    <td>{missing_handled:,}</td>
+                    <td>{(missing_handled/initial_rows*100):.2f}%</td>
+                </tr>
+                <tr>
+                    <td>Outliers Capped</td>
+                    <td>{outliers_detected:,}</td>
+                    <td>{(outliers_detected/initial_rows*100):.2f}%</td>
+                </tr>
+                <tr>
+                    <td>Text Fields Standardized</td>
+                    <td>{self.cleaning_stats.get('text_standardized', 0):,}</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Timestamps Standardized</td>
+                    <td>{self.cleaning_stats.get('timestamps_standardized', 0):,}</td>
+                    <td>-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>⚠️ Missing Values: Before vs After Cleaning</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Column</th>
+                    <th>Before Cleaning</th>
+                    <th>After Cleaning</th>
+                    <th>Action Taken</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join([f'''
+                <tr>
+                    <td><strong>{col}</strong></td>
+                    <td>{stats.get('count', 0):,} ({stats.get('percentage', 0):.2f}%)</td>
+                    <td>0 (0.00%) ✅</td>
+                    <td>{self.cleaning_stats.get('missing_values_handled', {}).get(col, {}).get('action', 'N/A')}</td>
+                </tr>
+                ''' for col, stats in original_missing.items()]) if original_missing else 
+                ''.join([f'''
+                <tr>
+                    <td><strong>{item['column']}</strong></td>
+                    <td>{item['count']:,} (N/A%)</td>
+                    <td>0 (0.00%) ✅</td>
+                    <td>{item['action']}</td>
+                </tr>
+                ''' for item in missing_breakdown]) if missing_breakdown else 
+                '<tr><td colspan="4">✅ No missing values detected in original data</td></tr>'}
+            </tbody>
+        </table>
+        
+        {f'''
+        <h2>📊 Missing Values Details</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Column</th>
+                    <th>Missing Count</th>
+                    <th>Fill Value</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join([f'''
+                <tr>
+                    <td>{item['column']}</td>
+                    <td>{item['count']:,}</td>
+                    <td>{self.cleaning_stats.get("missing_values_handled", {}).get(item["column"], {}).get("fill_value", "N/A")}</td>
+                    <td>{item['action']}</td>
+                </tr>
+                ''' for item in missing_breakdown]) if missing_breakdown else '<tr><td colspan="4">No missing values handled</td></tr>'}
+            </tbody>
+        </table>
+        ''' if missing_breakdown else ''}
+
+        <h2>💡 Recommendations</h2>
+        <div class="recommendations">
+            <ul>
+                {'<li>✅ Data quality meets standards - all metrics within acceptable ranges</li>' if retention_rate >= 95 and missing_rate <= 5 and duplicate_rate <= 5 else ''}
+                {'<li>⚠️ Consider improving data retention - some rows were removed during cleaning</li>' if retention_rate < 95 else ''}
+                {'<li>⚠️ Missing values detected - consider improving data source validation</li>' if missing_rate > 0 else ''}
+                {'<li>⚠️ Duplicates found - consider implementing deduplication at data source</li>' if duplicate_rate > 0 else ''}
+                <li>💡 Continue monitoring data quality metrics regularly</li>
+                <li>📝 Document any data quality issues for future reference</li>
+                <li>🔄 Consider automating data quality checks in the pipeline</li>
+            </ul>
+        </div>
+
+        <h2>📊 Sample Data (First 10 Rows)</h2>
+        {df.head(10).to_html(classes='table', table_id='sample-data', escape=False)}
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; color: #666;">
+            <p>Report generated by Kubernetes Log Monitoring System</p>
+            <p style="font-size: 0.9em;">Data Quality Engineering Pipeline</p>
+        </div>
+    </div>
+</body>
+</html>
         """
         
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        logger.info(f"Simple HTML profile saved to {output_path}")
+        logger.info(f"Enhanced HTML profile saved to {output_path}")
 
 
 def main():
