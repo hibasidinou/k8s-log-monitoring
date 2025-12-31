@@ -1,0 +1,29 @@
+[project]
+name = "k8s-log-monitoring"
+version = "0.1.0"
+description = "Kubernetes log monitoring and anomaly detection system"
+requires-python = ">=3.8"
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "streamlit>=1.28.0",
+    "plotly>=5.17.0",
+    "scikit-learn>=1.3.0",
+    "requests>=2.31.0",
+    "pyarrow>=12.0.0",
+    "kafka-python>=2.0.2",
+]
+
+[project.optional-dependencies]
+spark = [
+    "pyspark>=3.4.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.basedpyright]
+reportMissingImports = "warning"
+typeCheckingMode = "basic"
+
