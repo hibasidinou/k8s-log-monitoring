@@ -15,7 +15,7 @@ OUTPUT_LOG_FILE = "data/logs/streamed_logs.log"  # ← Fichier de sortie
 NUM_SERVERS = 10  # ← CHANGÉ à 10 serveurs
 KAFKA_BOOTSTRAP = 'localhost:9092'
 KAFKA_TOPIC = 'kubernetes-logs'
-DELAY_BETWEEN_LOGS = 0.1
+DELAY_BETWEEN_LOGS = 1
 # =======================================================
 
 
