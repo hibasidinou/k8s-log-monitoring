@@ -6,8 +6,10 @@ import threading
 import json
 import os
 from datetime import datetime
-from kafka import KafkaProducer  # type: ignore[reportMissingImports]
+from kafka import KafkaProducer, KafkaConsumer  # type: ignore[reportMissingImports]
 from kafka.errors import NoBrokersAvailable  # type: ignore[reportMissingImports]
+from kafka.admin import KafkaAdminClient, NewTopic  # type: ignore[reportMissingImports]
+from kafka.errors import TopicAlreadyExistsError  # type: ignore[reportMissingImports]
 
 # ==================== CONFIGURATION ====================
 CSV_PATH = "data/processed/k8s_logs_with_security.csv"
@@ -15,6 +17,8 @@ OUTPUT_LOG_FILE = "data/logs/streamed_logs.log"
 NUM_SERVERS = 10
 KAFKA_BOOTSTRAP = 'localhost:9092'
 KAFKA_TOPIC = 'kubernetes-logs'
+KAFKA_NUM_PARTITIONS = 3  # Number of partitions for the topic
+KAFKA_REPLICATION_FACTOR = 1  # Replication factor
 DELAY_BETWEEN_LOGS = 0.0001  # 10,000 logs/sec
 # =======================================================
 
@@ -48,6 +52,9 @@ class MultiServerLogStreamer:
         # Lock pour l'écriture fichier thread-safe
         self.log_lock = threading.Lock()
         
+        # Créer le topic Kafka avec 3 partitions si nécessaire
+        self._ensure_topic_exists()
+        
         # Créer Kafka producer
         print("📡 Connecting to Kafka...")
         try:
@@ -55,7 +62,9 @@ class MultiServerLogStreamer:
                 bootstrap_servers=[KAFKA_BOOTSTRAP],
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
                 key_serializer=lambda k: k.encode('utf-8') if k else None,
-                api_version=(0, 10, 1)
+                acks='all',  # Attendre confirmation de tous les replicas
+                retries=3,   # Réessayer en cas d'échec
+                max_in_flight_requests_per_connection=1  # Ordre garanti
             )
             print("✅ Connected to Kafka successfully")
         except NoBrokersAvailable:
@@ -75,6 +84,51 @@ class MultiServerLogStreamer:
             raise
         
         print(f"✅ Loaded {len(self.df)} logs\n")
+    
+    def _ensure_topic_exists(self):
+        """
+        Ensure Kafka topic exists with the correct number of partitions.
+        Creates the topic if it doesn't exist.
+        """
+        try:
+            admin_client = KafkaAdminClient(
+                bootstrap_servers=[KAFKA_BOOTSTRAP],
+                client_id='stream_logs_topic_creator'
+            )
+            
+            existing_topics = admin_client.list_topics()
+            
+            if KAFKA_TOPIC not in existing_topics:
+                print(f"📦 Creating Kafka topic '{KAFKA_TOPIC}' with {KAFKA_NUM_PARTITIONS} partitions...")
+                topic = NewTopic(
+                    name=KAFKA_TOPIC,
+                    num_partitions=KAFKA_NUM_PARTITIONS,
+                    replication_factor=KAFKA_REPLICATION_FACTOR
+                )
+                admin_client.create_topics([topic])
+                print(f"✅ Topic '{KAFKA_TOPIC}' created with {KAFKA_NUM_PARTITIONS} partitions")
+            else:
+                # Check current partition count
+                consumer = KafkaConsumer(
+                    bootstrap_servers=[KAFKA_BOOTSTRAP],
+                    consumer_timeout_ms=1000
+                )
+                partitions = consumer.partitions_for_topic(KAFKA_TOPIC)
+                consumer.close()
+                
+                if partitions and len(partitions) != KAFKA_NUM_PARTITIONS:
+                    print(f"⚠️  Topic '{KAFKA_TOPIC}' exists with {len(partitions)} partition(s), expected {KAFKA_NUM_PARTITIONS}")
+                    print(f"💡 To increase partitions, run:")
+                    print(f"   docker exec -it kafka kafka-topics --alter --topic {KAFKA_TOPIC} --partitions {KAFKA_NUM_PARTITIONS} --bootstrap-server localhost:9092")
+                else:
+                    print(f"✅ Topic '{KAFKA_TOPIC}' exists with {KAFKA_NUM_PARTITIONS} partition(s)")
+            
+            admin_client.close()
+            
+        except Exception as e:
+            # If topic creation fails, continue anyway (topic might be auto-created)
+            print(f"⚠️  Could not verify/create topic: {e}")
+            print("   Topic will be auto-created on first message (may have 1 partition)")
     
     def format_log(self, row, server_id):
         """
@@ -161,13 +215,28 @@ class MultiServerLogStreamer:
             
             try:
                 # ========== ENVOYER À KAFKA ==========
-                self.producer.send(
+                future = self.producer.send(
                     KAFKA_TOPIC,
                     key=server_id,
                     value=log_data
                 )
+                
+                # Vérifier les erreurs de manière asynchrone
+                def on_send_success(record_metadata):
+                    pass  # Message envoyé avec succès
+                
+                def on_send_error(excp):
+                    print(f"[{server_id}] ❌ Kafka Error: {excp}")
+                
+                future.add_callback(on_send_success)
+                future.add_errback(on_send_error)
+                
+                # Flush périodique pour forcer l'envoi (tous les 100 messages pour garantir l'envoi)
+                if sent_count % 100 == 0:
+                    self.producer.flush(timeout=5)
                 # =====================================
-                 # ========== AFFICHER DANS LA CONSOLE ==========
+                
+                # ========== AFFICHER DANS LA CONSOLE ==========
                 print(log_text, end='')  # end='' car log_text a déjà \n à la fin
                 # ==============================================
                 
@@ -179,9 +248,9 @@ class MultiServerLogStreamer:
                 
                 sent_count += 1
                 
-                # Progress (moins fréquent pour ne pas polluer la console)
+                # Progress (moins fréquent, mais toujours affiché)
                 if sent_count % 10000 == 0:
-                    print(f"[{server_id}] 📊 Progress: {sent_count}/{total_logs} logs")
+                    print(f"\n[{server_id}] 📊 Progress: {sent_count}/{total_logs} logs\n")
                 
             except Exception as e:
                 print(f"[{server_id}] ❌ Error sending log: {e}")
@@ -226,9 +295,11 @@ class MultiServerLogStreamer:
         for thread in threads:
             thread.join()
         
-        # Fermer proprement
-        self.producer.flush()
-        self.producer.close()
+        # Fermer proprement - s'assurer que tous les messages sont envoyés
+        print("\n⏳ Flushing remaining Kafka messages...")
+        self.producer.flush(timeout=30)  # Attendre jusqu'à 30 secondes
+        self.producer.close(timeout=10)
+        print("✅ Kafka producer closed")
         
         elapsed_time = time.time() - start_time
         
