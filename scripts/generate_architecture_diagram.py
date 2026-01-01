@@ -1,156 +1,270 @@
 #!/usr/bin/env python3
 """
-Generate architecture diagram for the multi-server streaming pipeline.
+Generate Architecture Diagram showing the complete data flow pipeline.
 """
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-import matplotlib.patches as patches
+from matplotlib.patches import Rectangle, FancyBboxPatch, FancyArrowPatch, Circle
+from matplotlib.lines import Line2D
 
 def create_architecture_diagram():
-    """Create the architecture diagram for the streaming pipeline."""
+    """Create architecture diagram showing data flow through layers."""
     
-    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 12)
+    fig, ax = plt.subplots(figsize=(18, 14))
+    ax.set_xlim(0, 18)
+    ax.set_ylim(0, 14)
     ax.axis('off')
     
     # Colors
-    color_input = '#4A90E2'      # Blue
-    color_streaming = '#50C878'  # Green
-    color_output = '#FF6B6B'     # Red
-    color_arrow = '#2C3E50'      # Dark gray
+    SIMULATION_COLOR = '#3B82F6'  # Blue
+    KAFKA_COLOR = '#10B981'       # Green
+    SPARK_COLOR = '#F59E0B'       # Orange
+    STORAGE_COLOR = '#8B5CF6'     # Purple
+    BG_COLOR = '#F9FAFB'
+    TEXT_COLOR = '#111827'
     
-    # Title
-    title = ax.text(5, 11.5, 'Pipeline de Streaming Multi-Serveurs', 
-                    ha='center', va='center', fontsize=20, fontweight='bold',
-                    bbox=dict(boxstyle='round,pad=0.5', facecolor='#ECF0F1', edgecolor='#34495E', linewidth=2))
+    # ==================== LAYER 1: SIMULATION ====================
+    layer1_y = 11.5
+    layer1_height = 1.8
     
-    # ==================== INPUT LAYER ====================
-    input_box = FancyBboxPatch((2.5, 8.5), 5, 1.5,
-                               boxstyle="round,pad=0.1",
-                               facecolor=color_input, edgecolor='white', linewidth=2)
-    ax.add_patch(input_box)
+    layer1_box = FancyBboxPatch((0.5, layer1_y), 17, layer1_height,
+                               boxstyle="round,pad=0.1", linewidth=2.5,
+                               facecolor=SIMULATION_COLOR, edgecolor='white')
+    ax.add_patch(layer1_box)
     
-    input_title = ax.text(5, 10, 'INPUT LAYER', 
-                          ha='center', va='center', fontsize=14, fontweight='bold', color='white')
+    # Layer title
+    title_bg = Rectangle((0.5, layer1_y + layer1_height - 0.4), 17, 0.4,
+                        facecolor='#1E40AF', edgecolor='white', linewidth=1)
+    ax.add_patch(title_bg)
+    ax.text(9, layer1_y + layer1_height - 0.2, 
+            'COUCHE SIMULATION', ha='center', va='center',
+            fontsize=14, fontweight='bold', color='white')
     
-    # CSV Reader
-    csv_box = FancyBboxPatch((3, 8.7), 1.8, 0.8,
-                             boxstyle="round,pad=0.05",
-                             facecolor='white', edgecolor=color_input, linewidth=1.5)
-    ax.add_patch(csv_box)
-    ax.text(3.9, 9.1, 'CSV Reader', ha='center', va='center', fontsize=11, fontweight='bold')
+    # Servers (10 threads)
+    server_width = 1.3
+    server_height = 1
+    server_spacing = 0.2
+    total_servers_width = 10 * server_width + 9 * server_spacing
+    server_start_x = (18 - total_servers_width) / 2
     
-    # Data Loader
-    loader_box = FancyBboxPatch((5.2, 8.7), 1.8, 0.8,
-                                boxstyle="round,pad=0.05",
-                                facecolor='white', edgecolor=color_input, linewidth=1.5)
-    ax.add_patch(loader_box)
-    ax.text(6.1, 9.1, 'Data Loader', ha='center', va='center', fontsize=11, fontweight='bold')
+    for i in range(10):
+        server_x = server_start_x + i * (server_width + server_spacing)
+        server_box = Rectangle((server_x, layer1_y + 0.15), server_width, server_height,
+                              facecolor='white', edgecolor=SIMULATION_COLOR, linewidth=1.5)
+        ax.add_patch(server_box)
+        
+        server_id = f'server-{i+1:02d}'
+        ax.text(server_x + server_width/2, layer1_y + 0.75, server_id,
+               ha='center', va='center', fontsize=9, fontweight='bold')
+        ax.text(server_x + server_width/2, layer1_y + 0.45, f'Thread {i+1}',
+               ha='center', va='center', fontsize=8)
+        ax.text(server_x + server_width/2, layer1_y + 0.25, '88k logs',
+               ha='center', va='center', fontsize=7, style='italic', color='#666')
+        
+        # Arrow down from server
+        if i == 0 or i == 9:
+            arrow = FancyArrowPatch((server_x + server_width/2, layer1_y + 0.15),
+                                   (server_x + server_width/2, layer1_y - 0.2),
+                                   arrowstyle='->', mutation_scale=15, linewidth=1.5,
+                                   color='#666', zorder=10)
+            ax.add_patch(arrow)
     
-    # Arrow from Input to Streaming
-    arrow1 = FancyArrowPatch((5, 8.5), (5, 7),
-                            arrowstyle='->', mutation_scale=25,
-                            linewidth=3, color=color_arrow, zorder=1)
-    ax.add_patch(arrow1)
+    # Merge arrows
+    merge_line = Line2D([server_start_x + server_width/2, 
+                        server_start_x + 10*server_width + 9*server_spacing - server_width/2],
+                       [layer1_y - 0.2, layer1_y - 0.2],
+                       color='#666', linewidth=2, zorder=5)
+    ax.add_line(merge_line)
     
-    # ==================== STREAMING LAYER ====================
-    streaming_box = FancyBboxPatch((1.5, 5), 7, 2,
-                                   boxstyle="round,pad=0.1",
-                                   facecolor=color_streaming, edgecolor='white', linewidth=2)
-    ax.add_patch(streaming_box)
+    # Single arrow down
+    main_arrow1 = FancyArrowPatch((9, layer1_y - 0.2), (9, 10.2),
+                                 arrowstyle='->', mutation_scale=25, linewidth=3,
+                                 color='#666', zorder=10)
+    ax.add_patch(main_arrow1)
     
-    streaming_title = ax.text(5, 6.7, 'STREAMING LAYER', 
-                              ha='center', va='center', fontsize=14, fontweight='bold', color='white')
+    # ==================== LAYER 2: KAFKA ====================
+    layer2_y = 8.5
+    layer2_height = 1.5
     
-    # 10 Threads
-    threads_box = FancyBboxPatch((2, 5.3), 1.8, 1.2,
-                                boxstyle="round,pad=0.05",
-                                facecolor='white', edgecolor=color_streaming, linewidth=1.5)
-    ax.add_patch(threads_box)
-    ax.text(2.9, 5.95, '10 Threads', ha='center', va='center', fontsize=11, fontweight='bold')
-    ax.text(2.9, 5.6, '(Multi-Server)', ha='center', va='center', fontsize=9, style='italic')
+    layer2_box = FancyBboxPatch((0.5, layer2_y), 17, layer2_height,
+                               boxstyle="round,pad=0.1", linewidth=2.5,
+                               facecolor=KAFKA_COLOR, edgecolor='white')
+    ax.add_patch(layer2_box)
     
-    # Formatter
-    formatter_box = FancyBboxPatch((4.1, 5.3), 1.8, 1.2,
-                                   boxstyle="round,pad=0.05",
-                                   facecolor='white', edgecolor=color_streaming, linewidth=1.5)
-    ax.add_patch(formatter_box)
-    ax.text(5, 5.95, 'Formatter', ha='center', va='center', fontsize=11, fontweight='bold')
-    ax.text(5, 5.6, '(Log Parser)', ha='center', va='center', fontsize=9, style='italic')
+    # Layer title
+    title_bg2 = Rectangle((0.5, layer2_y + layer2_height - 0.4), 17, 0.4,
+                         facecolor='#059669', edgecolor='white', linewidth=1)
+    ax.add_patch(title_bg2)
+    ax.text(9, layer2_y + layer2_height - 0.2,
+           'COUCHE MESSAGING (Kafka)', ha='center', va='center',
+           fontsize=14, fontweight='bold', color='white')
     
-    # Kafka Producer
-    kafka_prod_box = FancyBboxPatch((6.2, 5.3), 1.8, 1.2,
-                                    boxstyle="round,pad=0.05",
-                                    facecolor='white', edgecolor=color_streaming, linewidth=1.5)
-    ax.add_patch(kafka_prod_box)
-    ax.text(7.1, 5.95, 'Kafka Prod', ha='center', va='center', fontsize=11, fontweight='bold')
-    ax.text(7.1, 5.6, '(Publisher)', ha='center', va='center', fontsize=9, style='italic')
+    # Topic box
+    topic_box = FancyBboxPatch((2, layer2_y + 0.2), 14, 0.9,
+                              boxstyle="round,pad=0.05", linewidth=1.5,
+                              facecolor='white', edgecolor=KAFKA_COLOR)
+    ax.add_patch(topic_box)
+    ax.text(9, layer2_y + 1.0, 'Topic: kubernetes-logs',
+           ha='center', va='center', fontsize=11, fontweight='bold')
     
-    # Arrow from Streaming to Output
-    arrow2 = FancyArrowPatch((5, 5), (5, 3.5),
-                            arrowstyle='->', mutation_scale=25,
-                            linewidth=3, color=color_arrow, zorder=1)
-    ax.add_patch(arrow2)
+    # Partitions (3 partitions)
+    part_width = 4
+    part_height = 0.6
+    part_spacing = 0.5
+    total_part_width = 3 * part_width + 2 * part_spacing
+    part_start_x = (18 - total_part_width) / 2
     
-    # ==================== OUTPUT LAYER ====================
-    output_box = FancyBboxPatch((2, 1), 6, 2,
-                               boxstyle="round,pad=0.1",
-                               facecolor=color_output, edgecolor='white', linewidth=2)
-    ax.add_patch(output_box)
+    servers_per_partition = [
+        ['server-01', 'server-04', 'server-07', 'server-10'],
+        ['server-02', 'server-05', 'server-08'],
+        ['server-03', 'server-06', 'server-09']
+    ]
     
-    output_title = ax.text(5, 2.7, 'OUTPUT LAYER', 
-                          ha='center', va='center', fontsize=14, fontweight='bold', color='white')
+    for i in range(3):
+        part_x = part_start_x + i * (part_width + part_spacing)
+        part_box = Rectangle((part_x, layer2_y + 0.25), part_width, part_height,
+                            facecolor='#ECFDF5', edgecolor=KAFKA_COLOR, linewidth=1.5)
+        ax.add_patch(part_box)
+        ax.text(part_x + part_width/2, layer2_y + 0.7, f'Partition {i}',
+               ha='center', va='center', fontsize=9, fontweight='bold')
+        
+        servers_text = '\n'.join(servers_per_partition[i])
+        ax.text(part_x + part_width/2, layer2_y + 0.4, servers_text,
+               ha='center', va='center', fontsize=7.5)
     
-    # Kafka Topic
-    kafka_topic_box = FancyBboxPatch((2.5, 1.3), 2.5, 1.2,
-                                     boxstyle="round,pad=0.05",
-                                     facecolor='white', edgecolor=color_output, linewidth=1.5)
-    ax.add_patch(kafka_topic_box)
-    ax.text(3.75, 1.95, 'Kafka Topic', ha='center', va='center', fontsize=11, fontweight='bold')
-    ax.text(3.75, 1.6, 'kubernetes-logs', ha='center', va='center', fontsize=9, style='italic', color='#555')
+    # Arrow down
+    main_arrow2 = FancyArrowPatch((9, layer2_y), (9, 7.5),
+                                 arrowstyle='->', mutation_scale=25, linewidth=3,
+                                 color='#666', zorder=10)
+    ax.add_patch(main_arrow2)
     
-    # Log File
-    logfile_box = FancyBboxPatch((5.5, 1.3), 2.5, 1.2,
-                                 boxstyle="round,pad=0.05",
-                                 facecolor='white', edgecolor=color_output, linewidth=1.5)
-    ax.add_patch(logfile_box)
-    ax.text(6.75, 1.95, 'Log File', ha='center', va='center', fontsize=11, fontweight='bold')
-    ax.text(6.75, 1.6, 'streamed_logs.log', ha='center', va='center', fontsize=9, style='italic', color='#555')
+    # ==================== LAYER 3: SPARK ====================
+    layer3_y = 5
+    layer3_height = 2
     
-    # ==================== Additional Details ====================
-    # Data flow indicators
-    ax.text(5, 7.75, '↓', ha='center', va='center', fontsize=20, color=color_arrow, fontweight='bold')
-    ax.text(5, 4.25, '↓', ha='center', va='center', fontsize=20, color=color_arrow, fontweight='bold')
+    layer3_box = FancyBboxPatch((0.5, layer3_y), 17, layer3_height,
+                               boxstyle="round,pad=0.1", linewidth=2.5,
+                               facecolor=SPARK_COLOR, edgecolor='white')
+    ax.add_patch(layer3_box)
     
-    # Footer with additional info
-    footer_text = (
-        "Architecture: 10 serveurs parallèles | "
-        "Format: Logs structurés JSON + Texte | "
-        "Temps réel simulé"
-    )
-    ax.text(5, 0.3, footer_text, ha='center', va='center', 
-            fontsize=9, style='italic', color='#7F8C8D',
-            bbox=dict(boxstyle='round,pad=0.3', facecolor='#F8F9FA', edgecolor='#BDC3C7', alpha=0.7))
+    # Layer title
+    title_bg3 = Rectangle((0.5, layer3_y + layer3_height - 0.4), 17, 0.4,
+                         facecolor='#D97706', edgecolor='white', linewidth=1)
+    ax.add_patch(title_bg3)
+    ax.text(9, layer3_y + layer3_height - 0.2,
+           'COUCHE TRAITEMENT (Spark Streaming)', ha='center', va='center',
+           fontsize=14, fontweight='bold', color='white')
     
-    plt.tight_layout()
+    # Spark Consumer box
+    consumer_box = FancyBboxPatch((2.5, layer3_y + 1.2), 13, 0.35,
+                                 boxstyle="round,pad=0.05", linewidth=1.5,
+                                 facecolor='white', edgecolor=SPARK_COLOR)
+    ax.add_patch(consumer_box)
+    ax.text(9, layer3_y + 1.38, 'Spark Consumer (micro-batch 10s)',
+           ha='center', va='center', fontsize=10, fontweight='bold')
     
-    # Save the diagram
-    output_path = 'docs/presentation/architecture_diagram.png'
+    # Executors (3 executors)
+    exec_width = 3.5
+    exec_height = 0.5
+    exec_spacing = 0.8
+    total_exec_width = 3 * exec_width + 2 * exec_spacing
+    exec_start_x = (18 - total_exec_width) / 2
+    
+    for i in range(3):
+        exec_x = exec_start_x + i * (exec_width + exec_spacing)
+        exec_box = Rectangle((exec_x, layer3_y + 0.6), exec_width, exec_height,
+                            facecolor='#FEF3C7', edgecolor=SPARK_COLOR, linewidth=1.5)
+        ax.add_patch(exec_box)
+        ax.text(exec_x + exec_width/2, layer3_y + 0.85, f'Executor {i+1}',
+               ha='center', va='center', fontsize=9, fontweight='bold')
+        ax.text(exec_x + exec_width/2, layer3_y + 0.7, f'Part. {i}',
+               ha='center', va='center', fontsize=8)
+    
+    # Merge line
+    merge_line2 = Line2D([exec_start_x + exec_width/2,
+                         exec_start_x + 3*exec_width + 2*exec_spacing - exec_width/2],
+                        [layer3_y + 0.6, layer3_y + 0.6],
+                        color='#666', linewidth=2)
+    ax.add_line(merge_line2)
+    
+    # DataFrame Operations box
+    ops_box = FancyBboxPatch((5, layer3_y + 0.15), 8, 0.35,
+                            boxstyle="round,pad=0.05", linewidth=1.5,
+                            facecolor='white', edgecolor=SPARK_COLOR)
+    ax.add_patch(ops_box)
+    ax.text(9, layer3_y + 0.33, 'DataFrame Operations: Parse JSON • Validate • Aggregate • Detect Anomalies',
+           ha='center', va='center', fontsize=9)
+    
+    # Arrow down
+    main_arrow3 = FancyArrowPatch((9, layer3_y), (9, 4.2),
+                                 arrowstyle='->', mutation_scale=25, linewidth=3,
+                                 color='#666', zorder=10)
+    ax.add_patch(main_arrow3)
+    
+    # ==================== LAYER 4: STORAGE ====================
+    layer4_y = 1.5
+    layer4_height = 2
+    
+    layer4_box = FancyBboxPatch((0.5, layer4_y), 17, layer4_height,
+                               boxstyle="round,pad=0.1", linewidth=2.5,
+                               facecolor=STORAGE_COLOR, edgecolor='white')
+    ax.add_patch(layer4_box)
+    
+    # Layer title
+    title_bg4 = Rectangle((0.5, layer4_y + layer4_height - 0.4), 17, 0.4,
+                         facecolor='#7C3AED', edgecolor='white', linewidth=1)
+    ax.add_patch(title_bg4)
+    ax.text(9, layer4_y + layer4_height - 0.2,
+           'COUCHE STOCKAGE', ha='center', va='center',
+           fontsize=14, fontweight='bold', color='white')
+    
+    # Storage boxes (3 storage types)
+    storage_width = 4.5
+    storage_height = 1.2
+    storage_spacing = 0.75
+    total_storage_width = 3 * storage_width + 2 * storage_spacing
+    storage_start_x = (18 - total_storage_width) / 2
+    
+    storage_types = [
+        ('HDFS/S3', 'Raw logs'),
+        ('Database', 'Aggregates'),
+        ('Dashboard', 'Real-time')
+    ]
+    
+    for i, (name, desc) in enumerate(storage_types):
+        storage_x = storage_start_x + i * (storage_width + storage_spacing)
+        storage_box = Rectangle((storage_x, layer4_y + 0.25), storage_width, storage_height,
+                               facecolor='white', edgecolor=STORAGE_COLOR, linewidth=1.5)
+        ax.add_patch(storage_box)
+        ax.text(storage_x + storage_width/2, layer4_y + 1.1, name,
+               ha='center', va='center', fontsize=11, fontweight='bold')
+        ax.text(storage_x + storage_width/2, layer4_y + 0.6, desc,
+               ha='center', va='center', fontsize=9, style='italic', color='#666')
+    
+    # Arrows to storage
+    for i in range(3):
+        storage_x = storage_start_x + i * (storage_width + storage_spacing) + storage_width/2
+        arrow = FancyArrowPatch((9, 4.2), (storage_x, layer4_y + layer4_height),
+                               arrowstyle='->', mutation_scale=20, linewidth=2,
+                               color='#666', zorder=10, connectionstyle="arc3,rad=0.15")
+        ax.add_patch(arrow)
+    
+    plt.tight_layout(pad=0.5)
+    
+    # Save
     import os
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
-    print(f"✅ Diagram saved to: {output_path}")
+    output_dir = 'docs/presentation'
+    os.makedirs(output_dir, exist_ok=True)
     
-    # Also save as PDF for better quality
-    pdf_path = 'docs/presentation/architecture_diagram.pdf'
-    plt.savefig(pdf_path, bbox_inches='tight', facecolor='white')
-    print(f"✅ Diagram saved to: {pdf_path}")
+    png_path = os.path.join(output_dir, 'architecture_diagram.png')
+    plt.savefig(png_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.3)
+    print(f"✅ Architecture diagram saved to: {png_path}")
+    
+    pdf_path = os.path.join(output_dir, 'architecture_diagram.pdf')
+    plt.savefig(pdf_path, bbox_inches='tight', facecolor='white', pad_inches=0.3)
+    print(f"✅ Architecture diagram saved to: {pdf_path}")
     
     plt.show()
 
 if __name__ == "__main__":
     create_architecture_diagram()
-
