@@ -27,14 +27,7 @@ from src.dashboard.components.server_map import (
     display_server_map,
     display_server_details
 )
-from src.dashboard.components.creative_visualizations import (
-    create_3d_scatter,
-    create_animated_timeline,
-    create_sunburst_chart,
-    create_heatmap_calendar,
-    create_network_graph,
-    create_radar_chart
-)
+# Removed creative visualizations - keeping dashboard simple and focused on Spark data
 
 
 # Page configuration
@@ -184,12 +177,26 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
+    # Check Spark/Kafka connection status
+    spark_status = check_spark_connection(data_loader)
+    
     # Sidebar navigation
     st.sidebar.title("🚀 Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["Overview", "Creative Views", "Server Map", "Alerts", "Timeline", "Metrics", "Server Details"]
+        ["Overview", "Alerts", "Server Status"]
     )
+    
+    # Display Spark/Kafka status
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📡 Pipeline Status")
+    if spark_status['spark_active']:
+        st.sidebar.success(f"✅ Spark: {spark_status['status']}")
+        if spark_status['last_update']:
+            st.sidebar.caption(f"Last update: {spark_status['last_update']}")
+    else:
+        st.sidebar.error("❌ Spark: Not receiving data")
+        st.sidebar.caption("Start Spark pipeline to see data")
     
     # Sidebar filters
     st.sidebar.markdown("---")
@@ -224,24 +231,77 @@ def main():
     
     # Route to appropriate page
     if page == "Overview":
-        show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metrics_df, statistics)
-    elif page == "Creative Views":
-        show_creative_views_page(server_status_df, anomalies_df, metrics_df)
-    elif page == "Server Map":
-        show_server_map_page(data_loader, server_status_df, anomalies_df, selected_server)
+        show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metrics_df, statistics, spark_status)
     elif page == "Alerts":
-        show_alerts_page(data_loader, alerts, anomalies_df)
-    elif page == "Timeline":
-        show_timeline_page(data_loader, anomalies_df, selected_server)
-    elif page == "Metrics":
-        show_metrics_page(data_loader, metrics_df, server_status_df, selected_server)
-    elif page == "Server Details":
-        show_server_details_page(data_loader, server_status_df, anomalies_df, metrics_df, selected_server)
+        show_alerts_page(data_loader, alerts, anomalies_df, spark_status)
+    elif page == "Server Status":
+        show_server_status_page(data_loader, server_status_df, anomalies_df, selected_server, spark_status)
 
 
-def show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metrics_df, statistics):
+def check_spark_connection(data_loader):
+    """Check if Spark is actively processing data."""
+    from pathlib import Path
+    import os
+    from datetime import datetime
+    
+    output_dir = Path("data/output")
+    status = {
+        'spark_active': False,
+        'status': 'No data',
+        'last_update': None,
+        'anomalies_count': 0,
+        'servers_count': 0
+    }
+    
+    # Check if files exist and have recent modifications
+    anomalies_file = output_dir / "anomalies_detected.json"
+    server_status_file = output_dir / "dashboard" / "server_status.parquet"
+    
+    if anomalies_file.exists():
+        try:
+            import json
+            with open(anomalies_file, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                if content:
+                    data = json.loads(content)
+                    if isinstance(data, list) and len(data) > 0:
+                        status['anomalies_count'] = len(data)
+                        status['spark_active'] = True
+                        status['status'] = f'Active ({len(data)} anomalies)'
+                        
+                        # Get file modification time
+                        mod_time = os.path.getmtime(anomalies_file)
+                        status['last_update'] = datetime.fromtimestamp(mod_time).strftime("%H:%M:%S")
+        except:
+            pass
+    
+    if server_status_file.exists():
+        try:
+            import pandas as pd
+            df = pd.read_parquet(server_status_file)
+            if not df.empty:
+                status['servers_count'] = len(df)
+                if not status['spark_active']:
+                    status['spark_active'] = True
+                    status['status'] = f'Active ({len(df)} servers)'
+        except:
+            pass
+    
+    return status
+
+
+def show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metrics_df, statistics, spark_status):
     """Display overview page with key metrics and summary."""
     st.header("📊 Overview")
+    
+    # Spark Status Banner
+    if spark_status['spark_active']:
+        st.success(f"✅ **Spark Pipeline Active** - {spark_status['anomalies_count']} anomalies, {spark_status['servers_count']} servers | Last update: {spark_status['last_update'] or 'N/A'}")
+    else:
+        st.warning("⚠️ **Spark Pipeline Not Active** - Start Spark streaming to see real-time data from Kafka")
+        st.info("💡 **Tip:** Run `python scripts/run_spark_streaming.py` to start processing Kafka logs")
+    
+    st.markdown("---")
     
     # KPI Cards
     display_kpi_cards(statistics, anomalies_df, server_status_df)
@@ -249,17 +309,11 @@ def show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metr
     st.markdown("---")
     
     # Server Health Summary
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
+    if not server_status_df.empty:
+        st.subheader("🖥️ Server Status")
         display_server_health_summary(server_status_df)
-    
-    with col2:
-        st.subheader("Quick Stats")
-        if not anomalies_df.empty:
-            if 'severity' in anomalies_df.columns:
-                severity_counts = anomalies_df['severity'].value_counts()
-                st.bar_chart(severity_counts)
+    else:
+        st.info("No server data available. Spark needs to process data from Kafka first.")
     
     st.markdown("---")
     
@@ -267,218 +321,126 @@ def show_overview_page(data_loader, anomalies_df, server_status_df, alerts, metr
     if alerts:
         st.subheader("🚨 Recent Alerts")
         display_alerts_panel(alerts[:10], max_display=10)
-    
-    # Time Series Overview
-    if not metrics_df.empty:
-        st.markdown("---")
-        display_time_series_metrics(metrics_df)
-
-
-def show_creative_views_page(server_status_df, anomalies_df, metrics_df):
-    """Display creative visualizations page."""
-    st.header("🎨 Creative Visualizations")
-    st.markdown("### Explore your data through innovative and interactive visualizations")
-    
-    # 3D Scatter Plot
-    st.subheader("🌐 3D Server Status Visualization")
-    st.markdown("Interactive 3D view of server metrics (Errors, Warnings, Anomalies)")
-    fig_3d = create_3d_scatter(server_status_df, anomalies_df)
-    if fig_3d:
-        st.plotly_chart(fig_3d, width='stretch')
     else:
-        st.info("No server data available for 3D visualization.")
+        st.info("No alerts yet. Alerts will appear here when Spark detects anomalies.")
+
+
+def show_server_status_page(data_loader, server_status_df, anomalies_df, selected_server, spark_status):
+    """Display server status page."""
+    st.header("🖥️ Server Status")
+    
+    # Show Spark status
+    if spark_status['spark_active']:
+        st.success(f"✅ Spark processing data | {spark_status['servers_count']} servers monitored")
+    else:
+        st.warning("⚠️ Spark not active - Server status not updating")
     
     st.markdown("---")
     
-    # Network Graph and Sunburst
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🕸️ Server Network Topology")
-        st.markdown("Network view of server relationships")
-        fig_network = create_network_graph(server_status_df, anomalies_df)
-        if fig_network:
-            st.plotly_chart(fig_network, width='stretch')
-        else:
-            st.info("No server data available.")
-    
-    with col2:
-        st.subheader("☀️ Server Hierarchy Sunburst")
-        st.markdown("Hierarchical view of servers by status")
-        fig_sunburst = create_sunburst_chart(server_status_df, anomalies_df)
-        if fig_sunburst:
-            st.plotly_chart(fig_sunburst, width='stretch')
-        else:
-            st.info("No server data available.")
-    
-    st.markdown("---")
-    
-    # Animated Timeline
-    st.subheader("⏱️ Animated Incident Timeline")
-    st.markdown("Dynamic timeline with bubble sizes representing severity")
-    fig_timeline = create_animated_timeline(anomalies_df)
-    if fig_timeline:
-        st.plotly_chart(fig_timeline, width='stretch')
-    else:
-        st.info("No anomaly data available for timeline.")
-    
-    st.markdown("---")
-    
-    # Calendar Heatmap
-    st.subheader("📅 Anomaly Calendar Heatmap")
-    st.markdown("Daily anomaly distribution across time")
-    fig_calendar = create_heatmap_calendar(anomalies_df)
-    if fig_calendar:
-        st.plotly_chart(fig_calendar, width='stretch')
-    else:
-        st.info("No anomaly data available for calendar heatmap.")
-    
-    # Radar Chart for server performance (if we have metrics)
-    if not server_status_df.empty and len(server_status_df) > 0:
-        st.markdown("---")
-        st.subheader("📡 Server Performance Radar")
-        
-        # Select a server for radar chart
-        servers = server_status_df['server_id'].tolist() if 'server_id' in server_status_df.columns else []
-        if servers:
-            selected_server_radar = st.selectbox("Select server for performance radar", servers)
-            
-            if selected_server_radar:
-                server_row = server_status_df[server_status_df['server_id'] == selected_server_radar]
-                if not server_row.empty:
-                    # Create performance metrics
-                    perf_data = {
-                        'Availability': min(100, (1 - server_row.iloc[0].get('error_count', 0) / max(server_row.iloc[0].get('total_logs', 1), 1)) * 100),
-                        'Stability': max(0, 100 - server_row.iloc[0].get('error_count', 0) * 10),
-                        'Performance': max(0, 100 - server_row.iloc[0].get('warning_count', 0) * 5),
-                        'Health': 100 if server_row.iloc[0].get('status', '') == 'healthy' else 50
-                    }
-                    
-                    fig_radar = create_radar_chart(perf_data, f"Performance: {selected_server_radar}")
-                    st.plotly_chart(fig_radar, width='stretch')
-
-
-def show_server_map_page(data_loader, server_status_df, anomalies_df, selected_server):
-    """Display server map page with enhanced visualizations."""
-    st.header("🗺️ Server Map")
-    st.markdown("### Interactive server status visualization")
-    
-    # Add 3D view option
-    view_type = st.radio("View Type", ["2D Map", "3D Visualization"], horizontal=True)
-    
-    if view_type == "3D Visualization":
-        fig_3d = create_3d_scatter(server_status_df, anomalies_df)
-        if fig_3d:
-            st.plotly_chart(fig_3d, width='stretch')
-        else:
-            st.info("No server data available.")
-    else:
-        display_server_map(server_status_df, anomalies_df)
-    
-    st.markdown("---")
-    
-    # Server status table with better styling
-    st.subheader("📋 Server Status Table")
     if not server_status_df.empty:
-        st.dataframe(
-            server_status_df.style.background_gradient(subset=['error_count', 'warning_count'], cmap='Reds'),
-            width='stretch',
-            hide_index=True
-        )
+        # Server Map
+        display_server_map(server_status_df, anomalies_df)
+        
+        st.markdown("---")
+        
+        # Server Status Table
+        st.subheader("📋 Server Status Details")
+        st.dataframe(server_status_df, width='stretch', hide_index=True)
+        
+        # Server Details
+        if selected_server != "All":
+            st.markdown("---")
+            display_server_details(selected_server, server_status_df, anomalies_df)
+    else:
+        st.warning("⚠️ **Aucune donnée serveur disponible**")
+        st.markdown("""
+        Spark doit traiter des données depuis Kafka pour générer le statut des serveurs.
+        
+        **Étapes pour démarrer :**
+        
+        1. **Vérifier Kafka** (déjà fait ✅) :
+           ```powershell
+           docker ps --filter "name=kafka"
+           ```
+        
+        2. **Démarrer Spark Streaming** (Nouveau Terminal) :
+           ```powershell
+           python scripts/run_spark_streaming.py
+           ```
+           ⚠️ **Laissez ce terminal ouvert !**
+        
+        3. **Envoyer des logs à Kafka** (Nouveau Terminal) :
+           ```powershell
+           python src/data_collection/stream_logs.py
+           ```
+        
+        **Résultat attendu :**
+        - Spark traite les logs en temps réel
+        - Les statuts des serveurs apparaissent ici
+        - Les anomalies sont détectées automatiquement
+        """)
 
 
-def show_alerts_page(data_loader, alerts, anomalies_df):
+# Removed show_creative_views_page and show_server_map_page - simplified to show_server_status_page
+
+
+def show_alerts_page(data_loader, alerts, anomalies_df, spark_status):
     """Display alerts page."""
     st.header("🚨 Alerts & Anomalies")
     
+    # Show Spark status
+    if spark_status['spark_active']:
+        st.success(f"✅ Receiving data from Spark | {spark_status['anomalies_count']} anomalies detected")
+    else:
+        st.warning("⚠️ Spark not active - No new data from Kafka")
+    
+    st.markdown("---")
+    
     # Alerts Panel
-    display_alerts_panel(alerts)
+    if alerts:
+        display_alerts_panel(alerts)
+    else:
+        st.info("""
+        **Aucune alerte disponible.** 
+        
+        Les alertes sont générées par Spark lorsqu'il traite les logs depuis Kafka.
+        
+        **Solution :** Démarrer Spark Streaming et envoyer des logs à Kafka (voir instructions ci-dessus).
+        """)
     
     st.markdown("---")
     
     # Anomalies Table
-    display_anomalies_table(anomalies_df)
-
-
-def show_timeline_page(data_loader, anomalies_df, selected_server):
-    """Display timeline page with enhanced visualizations."""
-    st.header("📅 Incident Timeline")
-    st.markdown("### Visualize incidents and anomalies over time")
-    
-    # Filter by server if selected
-    server_filter = None if selected_server == "All" else selected_server
-    
-    # View type selector
-    view_type = st.radio("Timeline View", ["Standard Timeline", "Animated Timeline", "Calendar Heatmap"], horizontal=True)
-    
-    if view_type == "Animated Timeline":
-        # Filter anomalies if server selected
-        if server_filter and not anomalies_df.empty and 'server_id' in anomalies_df.columns:
-            filtered_anomalies = anomalies_df[anomalies_df['server_id'] == server_filter]
-        else:
-            filtered_anomalies = anomalies_df
-        
-        fig_animated = create_animated_timeline(filtered_anomalies)
-        if fig_animated:
-            st.plotly_chart(fig_animated, width='stretch')
-        else:
-            st.info("No anomaly data available.")
-    elif view_type == "Calendar Heatmap":
-        # Filter anomalies if server selected
-        if server_filter and not anomalies_df.empty and 'server_id' in anomalies_df.columns:
-            filtered_anomalies = anomalies_df[anomalies_df['server_id'] == server_filter]
-        else:
-            filtered_anomalies = anomalies_df
-        
-        fig_calendar = create_heatmap_calendar(filtered_anomalies)
-        if fig_calendar:
-            st.plotly_chart(fig_calendar, width='stretch')
-        else:
-            st.info("No anomaly data available.")
+    if not anomalies_df.empty:
+        st.subheader("📋 All Anomalies")
+        display_anomalies_table(anomalies_df)
     else:
-        # Standard timeline
-        display_incident_timeline(anomalies_df, server_filter)
-    
-    st.markdown("---")
-    
-    # Hourly Heatmap
-    display_hourly_incident_heatmap(anomalies_df)
-
-
-def show_metrics_page(data_loader, metrics_df, server_status_df, selected_server):
-    """Display metrics page."""
-    st.header("📈 Metrics & Analytics")
-    
-    # Filter by server if selected
-    server_filter = None if selected_server == "All" else selected_server
-    
-    # Time Series Metrics
-    display_time_series_metrics(metrics_df, server_filter)
-    
-    st.markdown("---")
-    
-    # Additional metrics visualizations
-    if not metrics_df.empty:
-        col1, col2 = st.columns(2)
+        st.warning("⚠️ **Aucune anomalie détectée**")
+        st.markdown("""
+        **Pourquoi ce message ?**
         
-        with col1:
-            st.subheader("Log Count Over Time")
-            if 'log_count' in metrics_df.columns and 'timestamp' in metrics_df.columns:
-                st.line_chart(metrics_df.set_index('timestamp')['log_count'])
+        Spark n'a pas encore traité de données depuis Kafka. Pour voir des anomalies :
         
-        with col2:
-            st.subheader("Error Rate Over Time")
-            if 'error_rate' in metrics_df.columns:
-                st.line_chart(metrics_df.set_index('timestamp')['error_rate'])
+        1. **Démarrer Spark Streaming** (Terminal 2) :
+           ```bash
+           python scripts/run_spark_streaming.py
+           ```
+        
+        2. **Envoyer des logs à Kafka** (Terminal 3) :
+           ```bash
+           python src/data_collection/stream_logs.py
+           ```
+        
+        3. **Attendre quelques secondes** - Spark traitera les logs automatiquement
+        
+        **Vérification :**
+        - Kafka doit être démarré : `docker ps --filter "name=kafka"`
+        - Spark doit être en cours d'exécution (Terminal 2 ouvert)
+        - Les logs doivent être envoyés (Terminal 3 ouvert)
+        """)
 
 
-def show_server_details_page(data_loader, server_status_df, anomalies_df, metrics_df, selected_server):
-    """Display server details page."""
-    if selected_server == "All":
-        st.info("Please select a specific server from the sidebar to view details.")
-        return
-    
-    display_server_details(selected_server, server_status_df, anomalies_df, metrics_df)
+# Removed show_timeline_page, show_metrics_page, show_server_details_page - simplified dashboard
 
 
 if __name__ == "__main__":
