@@ -54,11 +54,30 @@ def create_server_status_visualization(server_status_df: pd.DataFrame, anomalies
         }
         return color_map.get(status_lower, '#808080')
     
+    # Ensure status column exists
+    if 'status' not in server_status_df.columns:
+        # Calculate status if we have metrics
+        if 'anomaly_count' in server_status_df.columns:
+            def calc_status(row):
+                anomaly_count = row.get('anomaly_count', 0)
+                max_cpu = row.get('max_cpu', 0)
+                max_memory = row.get('max_memory_mb', 0)
+                
+                # Seuils ajustés pour mieux différencier
+                if max_cpu > 0.8 or max_memory > 150000 or anomaly_count > 580:
+                    return 'critical'
+                elif max_cpu > 0.6 or max_memory > 100000 or anomaly_count > 550:
+                    return 'warning'
+                elif max_cpu < 0.6 and max_memory < 100000 and anomaly_count < 550:
+                    return 'healthy'
+                else:
+                    return 'warning'
+            server_status_df['status'] = server_status_df.apply(calc_status, axis=1)
+        else:
+            server_status_df['status'] = 'unknown'
+    
     # Create scatter plot for servers
-    if 'status' in server_status_df.columns:
-        server_status_df['color'] = server_status_df['status'].apply(get_status_color)
-    else:
-        server_status_df['color'] = '#808080'
+    server_status_df['color'] = server_status_df['status'].apply(get_status_color)
     
     # Create visualization
     col1, col2 = st.columns([2, 1])

@@ -1,160 +1,73 @@
 """
-Creative and modern visualizations for the dashboard.
+Creative and interactive visualizations for the K8s log monitoring dashboard.
 """
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from plotly.subplots import make_subplots
-import numpy as np
-from typing import Optional, Dict, List
-
-
-def create_gauge_chart(value: float, max_value: float, title: str, color: str = "#667eea"):
-    """
-    Create a modern gauge/speedometer chart.
-    
-    Args:
-        value: Current value
-        max_value: Maximum value
-        title: Chart title
-        color: Color scheme
-    """
-    fig = go.Figure(go.Indicator(
-        mode = "gauge+number+delta",
-        value = value,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': title, 'font': {'size': 20, 'color': '#2d3748'}},
-        delta = {'reference': max_value * 0.7},
-        gauge = {
-            'axis': {'range': [None, max_value]},
-            'bar': {'color': color},
-            'steps': [
-                {'range': [0, max_value * 0.5], 'color': "lightgray"},
-                {'range': [max_value * 0.5, max_value * 0.8], 'color': "gray"}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': max_value * 0.9
-            }
-        }
-    ))
-    
-    fig.update_layout(
-        paper_bgcolor="white",
-        font={'color': "#2d3748", 'family': "Inter"},
-        height=300
-    )
-    
-    return fig
-
-
-def create_radar_chart(server_data: Dict, title: str = "Server Performance"):
-    """
-    Create a radar/spider chart for server performance metrics.
-    
-    Args:
-        server_data: Dictionary with server metrics
-        title: Chart title
-    """
-    categories = list(server_data.keys())
-    values = list(server_data.values())
-    
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=categories,
-        fill='toself',
-        name='Performance',
-        line_color='#667eea'
-    ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100]
-            )),
-        showlegend=True,
-        title=title,
-        font={'color': "#2d3748", 'family': "Inter"},
-        paper_bgcolor="white",
-        height=400
-    )
-    
-    return fig
+from typing import Optional, Dict
+from datetime import datetime
 
 
 def create_3d_scatter(server_status_df: pd.DataFrame, anomalies_df: Optional[pd.DataFrame] = None):
     """
-    Create a 3D scatter plot of servers.
+    Create a 3D scatter plot showing server metrics.
     
     Args:
-        server_status_df: DataFrame with server status
-        anomalies_df: Optional DataFrame with anomalies
+        server_status_df: DataFrame with server status data
+        anomalies_df: Optional DataFrame with anomalies data
+    
+    Returns:
+        plotly.graph_objects.Figure or None
     """
-    if server_status_df.empty:
+    if server_status_df.empty or 'server_id' not in server_status_df.columns:
         return None
     
     # Prepare data
-    if 'error_count' not in server_status_df.columns:
-        server_status_df['error_count'] = 0
-    if 'warning_count' not in server_status_df.columns:
-        server_status_df['warning_count'] = 0
-    if 'total_logs' not in server_status_df.columns:
-        server_status_df['total_logs'] = 0
+    df = server_status_df.copy()
     
-    # Add anomaly counts
+    # Get error_count, warning_count, and total_logs
+    error_count = df.get('error_count', pd.Series([0] * len(df)))
+    warning_count = df.get('warning_count', pd.Series([0] * len(df)))
+    total_logs = df.get('total_logs', pd.Series([1] * len(df)))
+    
+    # Calculate anomaly count if anomalies_df is provided
     if anomalies_df is not None and not anomalies_df.empty and 'server_id' in anomalies_df.columns:
-        anomaly_counts = anomalies_df['server_id'].value_counts().to_dict()
-        server_status_df['anomaly_count'] = server_status_df['server_id'].map(anomaly_counts).fillna(0)
+        anomaly_counts = anomalies_df.groupby('server_id').size().to_dict()
+        df['anomaly_count'] = df['server_id'].map(anomaly_counts).fillna(0)
     else:
-        server_status_df['anomaly_count'] = 0
+        df['anomaly_count'] = 0
     
-    # Color mapping
-    def get_status_color(status):
-        color_map = {
-            'healthy': '#00ff88',
-            'warning': '#ffaa00',
-            'critical': '#ff0044',
-            'error': '#ff0044'
-        }
-        return color_map.get(str(status).lower(), '#808080')
-    
-    if 'status' in server_status_df.columns:
-        server_status_df['color'] = server_status_df['status'].apply(get_status_color)
-    else:
-        server_status_df['color'] = '#808080'
-    
-    # Create 3D scatter
+    # Create 3D scatter plot
     fig = go.Figure(data=go.Scatter3d(
-        x=server_status_df['error_count'].tolist(),
-        y=server_status_df['warning_count'].tolist(),
-        z=server_status_df['anomaly_count'].tolist(),
-        mode='markers+text',
-        text=server_status_df['server_id'].tolist(),
+        x=error_count,
+        y=warning_count,
+        z=df['anomaly_count'],
+        mode='markers',
         marker=dict(
-            size=(server_status_df['total_logs'] / 100).clip(10, 50).tolist(),
-            color=server_status_df['color'].tolist(),
-            opacity=0.8,
-            line=dict(width=2, color='white')
+            size=total_logs / max(total_logs.max(), 1) * 20 + 5,
+            color=error_count,
+            colorscale='Reds',
+            showscale=True,
+            colorbar=dict(title="Error Count"),
+            line=dict(width=1, color='darkgray')
         ),
-        hovertemplate='<b>%{text}</b><br>Errors: %{x}<br>Warnings: %{y}<br>Anomalies: %{z}<extra></extra>'
+        text=df['server_id'].tolist() if 'server_id' in df.columns else None,
+        hovertemplate='<b>%{text}</b><br>' +
+                      'Errors: %{x}<br>' +
+                      'Warnings: %{y}<br>' +
+                      'Anomalies: %{z}<extra></extra>'
     ))
     
     fig.update_layout(
-        title='3D Server Status Visualization',
+        title="3D Server Status Visualization",
         scene=dict(
-            xaxis_title='Error Count',
-            yaxis_title='Warning Count',
-            zaxis_title='Anomaly Count',
-            bgcolor='white'
+            xaxis_title="Error Count",
+            yaxis_title="Warning Count",
+            zaxis_title="Anomaly Count"
         ),
-        font={'color': "#2d3748", 'family': "Inter"},
-        height=600
+        height=600,
+        margin=dict(l=0, r=0, t=50, b=0)
     )
     
     return fig
@@ -162,78 +75,76 @@ def create_3d_scatter(server_status_df: pd.DataFrame, anomalies_df: Optional[pd.
 
 def create_animated_timeline(anomalies_df: pd.DataFrame):
     """
-    Create an animated timeline with bubbles.
+    Create an animated timeline of anomalies.
     
     Args:
-        anomalies_df: DataFrame with anomalies
+        anomalies_df: DataFrame with anomalies data
+    
+    Returns:
+        plotly.graph_objects.Figure or None
     """
-    if anomalies_df.empty or 'timestamp' not in anomalies_df.columns:
+    if anomalies_df.empty:
         return None
     
     df = anomalies_df.copy()
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    df = df.sort_values('timestamp')
     
-    # Severity size mapping
-    severity_sizes = {
-        'critical': 30,
-        'high': 25,
-        'warning': 20,
-        'medium': 15,
-        'low': 10,
-        'info': 5
-    }
+    # Ensure timestamp column exists
+    if 'timestamp' not in df.columns:
+        return None
     
+    # Convert timestamp to datetime if needed
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+    
+    # Remove rows with invalid timestamps
+    df = df.dropna(subset=['timestamp'])
+    
+    if df.empty:
+        return None
+    
+    # Get severity for color mapping
     if 'severity' in df.columns:
-        df['size'] = df['severity'].str.lower().map(severity_sizes).fillna(10)
+        severity_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'info': 0}
+        df['severity_num'] = df['severity'].map(severity_map).fillna(0)
     else:
-        df['size'] = 15
+        df['severity_num'] = 0
     
-    # Color mapping
-    severity_colors = {
-        'critical': '#ff0044',
-        'high': '#ff6600',
-        'warning': '#ffaa00',
-        'medium': '#ffdd00',
-        'low': '#aaff00',
-        'info': '#00aaff'
-    }
-    
-    if 'severity' in df.columns:
-        df['color'] = df['severity'].str.lower().map(severity_colors).fillna('#808080')
-    else:
-        df['color'] = '#808080'
-    
+    # Create animated scatter plot
     fig = go.Figure()
     
-    # Group by severity for better visualization
-    for severity in df.get('severity', ['unknown']).unique():
-        severity_df = df[df.get('severity', 'unknown') == severity]
-        
+    if 'severity' in df.columns:
+        for severity in df['severity'].unique():
+            severity_df = df[df['severity'] == severity]
+            fig.add_trace(go.Scatter(
+                x=severity_df['timestamp'],
+                y=[1] * len(severity_df),  # Y position (can be customized)
+                mode='markers',
+                name=severity,
+                marker=dict(
+                    size=severity_df['severity_num'] * 10 + 10,
+                    opacity=0.7
+                ),
+                text=severity_df.get('message', ''),
+                hovertemplate='<b>%{text}</b><br>Time: %{x}<extra></extra>'
+            ))
+    else:
         fig.add_trace(go.Scatter(
-            x=severity_df['timestamp'],
-            y=[severity] * len(severity_df),
+            x=df['timestamp'],
+            y=[1] * len(df),
             mode='markers',
-            name=str(severity).upper(),
-            marker=dict(
-                size=severity_df['size'].tolist(),
-                color=severity_df['color'].tolist(),
-                line=dict(width=2, color='white'),
-                opacity=0.7
-            ),
-            text=severity_df.get('message', ''),
-            hovertemplate='<b>%{y}</b><br>Time: %{x}<br>%{text}<extra></extra>'
+            name='Anomalies',
+            marker=dict(size=15, opacity=0.7),
+            text=df.get('message', ''),
+            hovertemplate='<b>%{text}</b><br>Time: %{x}<extra></extra>'
         ))
     
     fig.update_layout(
-        title='Animated Incident Timeline',
-        xaxis_title='Time',
-        yaxis_title='Severity',
+        title="Animated Incident Timeline",
+        xaxis_title="Time",
+        yaxis_title="",
+        height=400,
         hovermode='closest',
-        height=500,
-        font={'color': "#2d3748", 'family': "Inter"},
-        paper_bgcolor="white",
-        plot_bgcolor="white"
+        showlegend=True
     )
     
     return fig
@@ -241,62 +152,51 @@ def create_animated_timeline(anomalies_df: pd.DataFrame):
 
 def create_sunburst_chart(server_status_df: pd.DataFrame, anomalies_df: Optional[pd.DataFrame] = None):
     """
-    Create a sunburst chart showing server hierarchy and status.
+    Create a sunburst chart showing server hierarchy by status.
     
     Args:
-        server_status_df: DataFrame with server status
-        anomalies_df: Optional DataFrame with anomalies
+        server_status_df: DataFrame with server status data
+        anomalies_df: Optional DataFrame with anomalies data
+    
+    Returns:
+        plotly.graph_objects.Figure or None
     """
-    if server_status_df.empty:
+    if server_status_df.empty or 'server_id' not in server_status_df.columns:
         return None
     
-    # Prepare data for sunburst
-    data = []
+    df = server_status_df.copy()
     
-    # Root
-    data.append(dict(
-        ids='root',
-        labels='All Servers',
-        parents='',
-        values=len(server_status_df)
-    ))
+    # Get status column
+    if 'status' not in df.columns:
+        df['status'] = 'unknown'
     
-    # By status
-    if 'status' in server_status_df.columns:
-        for status in server_status_df['status'].unique():
-            count = len(server_status_df[server_status_df['status'] == status])
-            data.append(dict(
-                ids=f'status_{status}',
-                labels=status.upper(),
-                parents='root',
-                values=count
-            ))
-            
-            # Servers in this status
-            status_servers = server_status_df[server_status_df['status'] == status]
-            for _, server in status_servers.iterrows():
-                server_id = server.get('server_id', 'unknown')
-                data.append(dict(
-                    ids=f'server_{server_id}',
-                    labels=server_id,
-                    parents=f'status_{status}',
-                    values=1
-                ))
+    # Create hierarchy: Status -> Server
+    labels = []
+    parents = []
+    values = []
     
-    df_sunburst = pd.DataFrame(data)
+    # Add status level
+    status_counts = df.groupby('status').size()
+    for status, count in status_counts.items():
+        labels.append(status)
+        parents.append("")
+        values.append(count)
+    
+    # Add server level
+    for _, row in df.iterrows():
+        labels.append(row['server_id'])
+        parents.append(row['status'])
+        values.append(1)
     
     fig = go.Figure(go.Sunburst(
-        ids=df_sunburst['ids'],
-        labels=df_sunburst['labels'],
-        parents=df_sunburst['parents'],
-        values=df_sunburst['values'],
-        branchvalues="total",
-        hovertemplate='<b>%{label}</b><br>Count: %{value}<extra></extra>'
+        labels=labels,
+        parents=parents,
+        values=values,
+        branchvalues="total"
     ))
     
     fig.update_layout(
-        title='Server Hierarchy Sunburst',
-        font={'color': "#2d3748", 'family': "Inter"},
+        title="Server Hierarchy by Status",
         height=500
     )
     
@@ -305,55 +205,57 @@ def create_sunburst_chart(server_status_df: pd.DataFrame, anomalies_df: Optional
 
 def create_heatmap_calendar(anomalies_df: pd.DataFrame):
     """
-    Create a calendar heatmap showing anomalies by day.
+    Create a calendar heatmap showing anomaly distribution.
     
     Args:
-        anomalies_df: DataFrame with anomalies
+        anomalies_df: DataFrame with anomalies data
+    
+    Returns:
+        plotly.graph_objects.Figure or None
     """
-    if anomalies_df.empty or 'timestamp' not in anomalies_df.columns:
+    if anomalies_df.empty:
         return None
     
     df = anomalies_df.copy()
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    df['date'] = df['timestamp'].dt.date
-    df['day_of_week'] = df['timestamp'].dt.day_name()
-    df['week'] = df['timestamp'].dt.isocalendar().week
-    df['year'] = df['timestamp'].dt.year
     
-    # Count anomalies per day
-    daily_counts = df.groupby('date').size().reset_index(name='count')
-    
-    # Create calendar structure
-    calendar_data = []
-    for _, row in daily_counts.iterrows():
-        date = row['date']
-        count = row['count']
-        calendar_data.append({
-            'date': date,
-            'count': count,
-            'day': date.strftime('%A'),
-            'week': pd.Timestamp(date).isocalendar().week
-        })
-    
-    if not calendar_data:
+    # Ensure timestamp column exists
+    if 'timestamp' not in df.columns:
         return None
     
-    cal_df = pd.DataFrame(calendar_data)
+    # Convert timestamp to datetime if needed
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+    
+    # Remove rows with invalid timestamps
+    df = df.dropna(subset=['timestamp'])
+    
+    if df.empty:
+        return None
+    
+    # Extract date and hour
+    df['date'] = df['timestamp'].dt.date
+    df['hour'] = df['timestamp'].dt.hour
+    
+    # Count anomalies by date and hour
+    heatmap_data = df.groupby(['date', 'hour']).size().reset_index(name='count')
+    
+    # Create pivot table for heatmap
+    pivot_data = heatmap_data.pivot(index='date', columns='hour', values='count').fillna(0)
     
     # Create heatmap
-    fig = px.density_heatmap(
-        cal_df,
-        x='week',
-        y='day',
-        z='count',
-        histfunc='sum',
-        title='Anomaly Calendar Heatmap',
-        color_continuous_scale='Reds'
-    )
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot_data.values,
+        x=pivot_data.columns,
+        y=[str(d) for d in pivot_data.index],
+        colorscale='Reds',
+        showscale=True
+    ))
     
     fig.update_layout(
-        font={'color': "#2d3748", 'family': "Inter"},
-        height=400
+        title="Anomaly Calendar Heatmap",
+        xaxis_title="Hour of Day",
+        yaxis_title="Date",
+        height=600
     )
     
     return fig
@@ -361,97 +263,122 @@ def create_heatmap_calendar(anomalies_df: pd.DataFrame):
 
 def create_network_graph(server_status_df: pd.DataFrame, anomalies_df: Optional[pd.DataFrame] = None):
     """
-    Create a network graph showing relationships between servers.
+    Create a network graph showing server relationships.
     
     Args:
-        server_status_df: DataFrame with server status
-        anomalies_df: Optional DataFrame with anomalies
+        server_status_df: DataFrame with server status data
+        anomalies_df: Optional DataFrame with anomalies data
+    
+    Returns:
+        plotly.graph_objects.Figure or None
     """
-    if server_status_df.empty:
+    if server_status_df.empty or 'server_id' not in server_status_df.columns:
         return None
     
-    # Create node positions in a circle
-    n_servers = len(server_status_df)
-    angles = np.linspace(0, 2*np.pi, n_servers, endpoint=False)
+    df = server_status_df.copy()
     
-    node_x = np.cos(angles)
-    node_y = np.sin(angles)
+    # Create nodes (servers)
+    node_trace = go.Scatter(
+        x=[],
+        y=[],
+        mode='markers+text',
+        text=[],
+        textposition="middle center",
+        hovertext=[],
+        marker=dict(
+            size=[],
+            color=[],
+            colorscale='Viridis',
+            showscale=True
+        )
+    )
     
-    # Create edges (connect all servers in a network)
-    edge_x = []
-    edge_y = []
+    # Position nodes in a circle
+    n_servers = len(df)
+    for i, (_, row) in enumerate(df.iterrows()):
+        angle = 2 * 3.14159 * i / n_servers
+        node_trace['x'] += (0.5 * (1 + 0.3 * (i % 3)) * (1 if i % 2 == 0 else -1),)
+        node_trace['y'] += (0.5 * (1 + 0.3 * ((i + 1) % 3)) * (1 if (i // 2) % 2 == 0 else -1),)
+        node_trace['text'] += (row['server_id'],)
+        
+        error_count = row.get('error_count', 0)
+        node_trace['marker']['size'] += (max(20, error_count * 5 + 20),)
+        node_trace['marker']['color'] += (error_count,)
+        node_trace['hovertext'] += (
+            f"Server: {row['server_id']}<br>"
+            f"Errors: {error_count}<br>"
+            f"Status: {row.get('status', 'unknown')}",
+        )
     
-    for i in range(n_servers):
-        for j in range(i+1, n_servers):
-            edge_x.extend([node_x[i], node_x[j], None])
-            edge_y.extend([node_y[i], node_y[j], None])
-    
-    # Color nodes by status
-    def get_status_color(status):
-        color_map = {
-            'healthy': '#00ff88',
-            'warning': '#ffaa00',
-            'critical': '#ff0044'
-        }
-        return color_map.get(str(status).lower(), '#808080')
-    
-    if 'status' in server_status_df.columns:
-        node_colors = server_status_df['status'].apply(get_status_color).tolist()
-    else:
-        node_colors = ['#808080'] * n_servers
-    
-    # Create figure
-    fig = go.Figure()
-    
-    # Add edges
-    fig.add_trace(go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=0.5, color='#888'),
+    # Create edges (connections between servers)
+    edge_trace = go.Scatter(
+        x=[],
+        y=[],
+        line=dict(width=1, color='gray'),
         hoverinfo='none',
         mode='lines'
-    ))
+    )
     
-    # Add nodes
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        name='Servers',
-        marker=dict(
-            size=30,
-            color=node_colors,
-            line=dict(width=2, color='white')
-        ),
-        text=server_status_df['server_id'].tolist(),
-        textposition="middle center",
-        hovertemplate='<b>%{text}</b><extra></extra>'
-    ))
+    # Create simple connections (each server connected to next)
+    for i in range(n_servers):
+        if i < n_servers - 1:
+            edge_trace['x'] += (node_trace['x'][i], node_trace['x'][i + 1], None)
+            edge_trace['y'] += (node_trace['y'][i], node_trace['y'][i + 1], None)
     
-    fig.update_layout(
-        title='Server Network Topology',
-        showlegend=False,
-        hovermode='closest',
-        margin=dict(b=20, l=5, r=5, t=40),
-        annotations=[
-            dict(
-                text="Server Network",
-                showarrow=False,
-                xref="paper", yref="paper",
-                x=0.005, y=-0.002,
-                xanchor="left", yanchor="bottom",
-                font=dict(color="#2d3748", size=16)
-            )
-        ],
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        font={'color': "#2d3748", 'family': "Inter"},
-        height=500,
-        paper_bgcolor="white",
-        plot_bgcolor="white"
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            title="Server Network Topology",
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20, l=5, r=5, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            height=500
+        )
     )
     
     return fig
 
 
-
-
-
+def create_radar_chart(perf_data: Dict[str, float], title: str = "Performance Radar"):
+    """
+    Create a radar chart for performance metrics.
+    
+    Args:
+        perf_data: Dictionary with performance metrics (e.g., {'Availability': 95, 'Stability': 90})
+        title: Chart title
+    
+    Returns:
+        plotly.graph_objects.Figure
+    """
+    categories = list(perf_data.keys())
+    values = list(perf_data.values())
+    
+    # Close the radar chart by adding first value at the end
+    values += values[:1]
+    categories += categories[:1]
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories,
+        fill='toself',
+        name='Performance',
+        line=dict(color='rgb(102, 126, 234)')
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100]
+            )
+        ),
+        showlegend=True,
+        title=title,
+        height=500
+    )
+    
+    return fig

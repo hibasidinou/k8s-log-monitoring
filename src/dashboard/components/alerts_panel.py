@@ -176,7 +176,7 @@ def display_anomalies_table(anomalies_df: pd.DataFrame, max_rows: int = 100):
                 color = get_severity_color(val)
                 return f'background-color: {color}'
             
-            styled_df = display_df.style.applymap(
+            styled_df = display_df.style.map(
                 color_severity,
                 subset=['severity']
             )
